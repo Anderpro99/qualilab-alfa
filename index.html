@@ -1324,7 +1324,7 @@ function App() {
   const [corridas, setCorridas] = useEstadoPersistente("corridas", [], saneCorridas);               // resultados digitados
   const [regrasCfg, setRegrasCfg] = useEstadoPersistente("regras", CFG_PADRAO, saneRegras);         // severidade das regras
   const [modoGrafico, setModoGrafico] = useEstadoPersistente("modoGrafico", "separados", saneEm(["separados", "juntos", "ambos"]));
-  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino"]));   // aba aberta
+  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "fundamentos"]));
   // Estado temporário (não persiste): texto dos campos do formulário e mensagem de erro
   const [entradas, setEntradas] = useState(["", "", ""]);
   const [erro, setErro] = useState("");
