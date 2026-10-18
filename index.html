@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QualiLab – Simulador Analítico</title>
+<style>
+:root{--bg:#f5f6f4;--surface:#fff;--text:#1d2420;--muted:#5b655f;--line:#d9dfdb;--green:#14422f;--green-soft:#e4efe9;--bad:#8c2a2a;--bad-bg:#f8e8e8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:24px 18px 48px}
+header{padding:12px 0 18px;border-bottom:1px solid var(--line);margin-bottom:22px}
+h1{margin:0;font-size:1.8rem;color:var(--green)}
+.sub{margin:2px 0 0;color:var(--muted)}
+.aviso{background:var(--green-soft);border-radius:8px;padding:12px 16px;font-size:.93rem;margin-bottom:22px}
+.grade{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:800px){.grade{grid-template-columns:1fr 1fr;align-items:start}}
+.painel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px}
+.painel+.painel{margin-top:18px}
+h2{font-size:1.1rem;margin:0 0 12px}
+label{display:block;font-weight:600;margin-bottom:6px}
+.linha{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1 1 140px;min-width:0;font:inherit;padding:10px 12px;min-height:44px;border:1px solid #8a948e;border-radius:8px;background:#fff;color:var(--text)}
+button{font:inherit;font-weight:600;border-radius:8px;padding:10px 18px;min-height:44px;cursor:pointer;border:1px solid var(--green)}
+.primario{background:var(--green);color:#fff}
+.secundario{background:transparent;color:var(--green)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.erro{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-size:.93rem}
+.dica{color:var(--muted);font-size:.88rem;margin:8px 0 0}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:.9rem}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.lista{max-height:340px;overflow-y:auto}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.stat dt{color:var(--muted);font-size:.88rem}
+.stat dd{margin:2px 0 0;font-size:1.6rem;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums}
+.vazio{color:var(--muted)}
+.painel-grafico{margin-top:18px}
+.abas button[aria-checked="true"]{background:var(--green);color:#fff}
+.bloco-nivel{margin-top:22px}
+.bloco-nivel:first-of-type{margin-top:0}
+.bloco-nivel h3{margin:0 0 10px;font-size:1.05rem;color:var(--green)}
+.guia-intro h3,.titulo-tabela{margin:18px 0 4px;font-size:1rem}
+.guia-intro p{margin:0}
+.resumo{font-size:.93rem}
+.mini{width:100%;max-width:340px;display:block;margin:10px 14px 0}
+.mini text{fill:#5b655f;font-size:10px}
+.mini-legenda{margin:2px 14px 0;color:var(--muted);font-size:.85rem}
+.regra{border:1px solid var(--line);border-radius:8px;margin-top:10px;background:#fff}
+.regra summary{cursor:pointer;padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:44px}
+.regra summary:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.regra-nome{font-weight:700;color:var(--green);font-size:1.1rem;min-width:56px}
+.selo{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.82rem;font-weight:600}
+.selo.alerta{background:#fbf1e3;color:#8a4b0f}
+.selo.rejeicao{background:#f8e8e8;color:#8c2a2a}
+.selo.neutro{background:var(--green-soft);color:var(--green)}
+.regra dl{margin:0;padding:0 14px 14px}
+.regra dt{font-weight:600;margin-top:10px;color:var(--muted);font-size:.9rem}
+.regra dd{margin:2px 0 0}
+.painel+.grade{margin-top:18px}
+.grade>.painel+.painel{margin-top:0}
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.campos input,.campos select{width:100%}
+select{font:inherit;padding:10px 12px;min-height:44px;border:1px solid #8a948e;border-radius:8px;background:#fff;color:var(--text)}
+select:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+fieldset.nivel-cfg{border:1px solid var(--line);border-radius:8px;margin:16px 0 0;padding:12px 14px}
+fieldset.nivel-cfg legend{font-weight:600;color:var(--green);padding:0 6px}
+.nivel-cfg .dica,.nivel-cfg .erro{margin:10px 0 0}
+.abas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.abas button{flex:1 1 auto;border-radius:8px 8px 0 0;background:transparent;color:var(--green);border-bottom:none}
+.abas button[aria-selected="true"]{background:var(--green);color:#fff}
+.nivel-grid{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:900px){.nivel-grid{grid-template-columns:2fr 1fr;align-items:start}}
+.linhas-est{margin:0;border:1px solid var(--line);border-radius:8px;padding:4px 14px}
+.linhas-est div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.linhas-est div:last-child{border-bottom:0}
+.linhas-est dt{color:var(--muted)}
+.linhas-est dd{margin:0;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums}
+.linhas-est .esp dd{color:var(--text);font-weight:400}
+.caixa-grafico{position:relative;height:380px}
+@media (max-width:480px){.caixa-grafico{height:320px}}
+.banner{padding:12px 16px;border-radius:8px;font-weight:600;margin-bottom:12px}
+.banner.ok{background:var(--green-soft);color:var(--green)}
+.banner.alerta{background:#fbf1e3;color:#8a4b0f}
+.banner.rej{background:var(--bad-bg);color:var(--bad)}
+.lista-alertas{max-height:560px;overflow-y:auto}
+.regra ul{margin:4px 0 0;padding-left:20px}
+.regra li{margin:4px 0}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 12px;vertical-align:middle}
+.quiz-prog{color:var(--muted);font-size:.9rem;margin:0 0 6px}
+.mini.grande{max-width:520px;margin:10px 0}
+.opcoes{display:grid;gap:8px;margin-top:12px}
+.opcao{text-align:left;background:#fff;color:var(--text);border:1px solid #8a948e;font-weight:500}
+.opcao.certa{background:var(--green-soft);border-color:var(--green);color:var(--green);font-weight:600}
+.opcao.errada{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.feedback{margin-top:14px;padding:12px 16px;border-radius:8px}
+.feedback.certo{background:var(--green-soft)}
+.feedback.errado{background:var(--bad-bg)}
+.feedback h3{margin:0 0 4px;font-size:1rem}
+.feedback p{margin:4px 0}
+.regras-cfg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.cfg-regra{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.cfg-regra label{margin:0}
+.cfg-regra select{min-width:150px}
+.regra.sev-rej{border-left:4px solid var(--bad)}
+.regra.sev-alerta{border-left:4px solid #c77700}
+footer{margin-top:28px;color:var(--muted);font-size:.88rem;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:480px){button{flex:1 1 100%}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+const { useState, useRef, useEffect } = React;
+const html = htm.bind(React.createElement);
+
+// INÍCIO_CALCULOS
+
+/**
+ * Média aritmética:  x̄ = (x1 + x2 + ... + xn) / n
+ * Retorna null se não houver resultados.
+ */
+function calcularMedia(valores) {
+  const n = valores.length;
+  if (n === 0) return null;
+  let soma = 0;
+  for (const x of valores) soma += x;
+  return soma / n;
+}
+
+/**
+ * Desvio padrão AMOSTRAL (SD):  s = raiz( Σ(xi − x̄)² / (n − 1) )
+ *
+ * Usa n − 1 (correção de Bessel) porque os resultados do controle são uma
+ * AMOSTRA de todas as medições possíveis do material, e não a população
+ * inteira. É o cálculo usado na rotina de controle da qualidade laboratorial.
+ *
+ * Método de duas passagens: primeiro calcula a média, depois soma os
+ * quadrados dos desvios. É numericamente mais estável do que a fórmula
+ * "atalho" (Σx² − n·x̄²), que perde precisão com números grandes.
+ *
+ * Retorna null se n < 2 (com 1 resultado só, n − 1 = 0 e o SD não existe).
+ */
+function calcularDesvioPadrao(valores) {
+  const n = valores.length;
+  if (n < 2) return null;
+  const media = calcularMedia(valores);
+  let somaQuadrados = 0;
+  for (const x of valores) somaQuadrados += (x - media) ** 2;
+  return Math.sqrt(somaQuadrados / (n - 1));
+}
+
+/**
+ * Coeficiente de Variação:  CV% = (SD / |média|) × 100
+ *
+ * Expressa a imprecisão em relação ao tamanho da média, permitindo comparar
+ * controles de níveis diferentes. Usa o módulo da média para que o CV não
+ * fique negativo. Retorna null se o SD não existe ou se a média é zero
+ * (divisão por zero).
+ */
+function calcularCV(desvioPadrao, media) {
+  if (desvioPadrao === null || media === null || media === 0) return null;
+  return (desvioPadrao / Math.abs(media)) * 100;
+}
+
+/**
+ * Converte o texto digitado em número. Aceita vírgula ou ponto decimal
+ * ("12,5" ou "12.5"). Retorna null se não for um número válido
+ * (vazio, letras, mais de um separador, etc.).
+ */
+function converterNumero(texto) {
+  const limpo = texto.trim();
+  if (!/^[-+]?\d+([.,]\d+)?$/.test(limpo)) return null;
+  const numero = Number(limpo.replace(",", "."));
+  return Number.isFinite(numero) ? numero : null;
+}
+
+/**
+ * Limites de controle:  valor(k) = média + k × SD,  para k = +3, +2, +1, 0, −1, −2, −3
+ *
+ * Cada linha de referência do gráfico de Levey-Jennings é a média deslocada
+ * k desvios-padrão para cima ou para baixo. Exemplo: média 100 e SD 4 dão
+ * +1 SD = 104, +2 SD = 108, +3 SD = 112, −3 SD = 88.
+ *
+ * Retorna null se a média ou o SD não existem, ou se SD ≤ 0 (todos os
+ * resultados iguais): nesse caso as linhas se sobreporiam e não há limites
+ * distinguíveis para desenhar.
+ */
+function calcularLimites(media, desvioPadrao) {
+  if (media === null || desvioPadrao === null || desvioPadrao <= 0) return null;
+  return [3, 2, 1, 0, -1, -2, -3].map(k => ({ k, valor: media + k * desvioPadrao }));
+}
+
+// FIM_CALCULOS
+
+/* Formatação para exibição em português (vírgula decimal). "—" = indisponível. */
+function formatar(valor, casas) {
+  if (valor === null) return "—";
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+
+const MAX_DIAS = 31; // um mês de rotina
+
+/* ---------------- Gráfico de Levey-Jennings (Chart.js) ---------------- */
+
+// Aparência de cada tipo de linha, pela distância da média em SD (|k|).
+const ESTILO_LINHAS = {
+  0: { cor: "#14422f", largura: 2,   tracejado: [],     nome: "Média" },
+  1: { cor: "#8a948e", largura: 1,   tracejado: [2, 4], nome: "±1 SD" },
+  2: { cor: "#c77700", largura: 1.5, tracejado: [6, 4], nome: "±2 SD (atenção)" },
+  3: { cor: "#b3261e", largura: 1.5, tracejado: [],     nome: "±3 SD (rejeição)" }
+};
+
+// Plugin do Chart.js: escreve "+3 SD", "Média" etc. na ponta direita de cada linha.
+const pluginRotulosLinhas = {
+  id: "rotulosLinhas",
+  afterDatasetsDraw(grafico) {
+    const { ctx, chartArea } = grafico;
+    grafico.data.datasets.forEach((serie, i) => {
+      if (!serie.rotuloFim) return;
+      const pontos = grafico.getDatasetMeta(i).data;
+      if (pontos.length === 0) return;
+      ctx.save();
+      ctx.fillStyle = serie.borderColor;
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.fillText(serie.rotuloFim, chartArea.right + 6, pontos[pontos.length - 1].y);
+      ctx.restore();
+    });
+  }
+};
+
+const fmtNum = (v, casas) => v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+
+/* =====================================================================
+   NOVAS FUNÇÕES DE CÁLCULO (multinível)
+   ===================================================================== */
+// INÍCIO_CALCULOS_NIVEIS
+
+/**
+ * Parâmetros ESPERADOS de um nível (Alvo e SD), a partir do que foi digitado.
+ *
+ * Modo "sd":    usa o Alvo e o SD informados.
+ * Modo "range": o usuário informa o intervalo aceitável [mín, máx] e diz se ele
+ *               corresponde a ±2 SD ou ±3 SD (k). Então:
+ *                  Alvo = (mín + máx) / 2
+ *                  SD   = (máx − mín) / (2 × k)
+ *               Ex.: 92 a 108 com k = 2  →  Alvo 100, SD 4.
+ *
+ * Retorna { alvo, sd } ou null se houver campo vazio/inválido (SD ≤ 0 ou máx ≤ mín).
+ */
+function calcularParametros(cfg) {
+  if (cfg.modo === "sd") {
+    const alvo = converterNumero(cfg.alvo), sd = converterNumero(cfg.sd);
+    if (alvo === null || sd === null || sd <= 0) return null;
+    return { alvo, sd };
+  }
+  const min = converterNumero(cfg.min), max = converterNumero(cfg.max), k = Number(cfg.k);
+  if (min === null || max === null || max <= min) return null;
+  return { alvo: (min + max) / 2, sd: (max - min) / (2 * k) };
+}
+
+/**
+ * Viés (bias) em relação ao alvo:
+ *    absoluto   = média obtida − alvo
+ *    percentual = (média obtida − alvo) / |alvo| × 100
+ * Positivo = resultados acima do alvo; negativo = abaixo.
+ * Retorna null se não há média; percentual é null quando o alvo é zero.
+ */
+function calcularVies(media, alvo) {
+  if (media === null || alvo === null) return null;
+  const absoluto = media - alvo;
+  return { absoluto, percentual: alvo === 0 ? null : (absoluto / Math.abs(alvo)) * 100 };
+}
+
+/**
+ * Z-Score (também chamado SDI, Índice de Desvio Padrão) de um resultado:
+ *
+ *      Z = (resultado − alvo) / SD esperado
+ *
+ * Diz "a quantos desvios-padrão do alvo" o resultado está:
+ *    Z = 0   → exatamente no alvo        Z = +2 → 2 SD acima do alvo
+ *    Z = −1  → 1 SD abaixo do alvo       |Z| > 3 → além do limite de rejeição
+ *
+ * Usa o ALVO e o SD ESPERADO da configuração de cada nível (os mesmos que fixam
+ * as linhas do gráfico individual), e não a média/SD dos pontos digitados.
+ * Por isso níveis com escalas diferentes (ex.: alvo 50 e alvo 200) ficam
+ * comparáveis no mesmo eixo, de −3 a +3.
+ * Ex.: alvo 100, SD 4, resultado 108 → Z = +2.  Alvo 50, SD 2, resultado 48 → Z = −1.
+ *
+ * Retorna null se não há valor (dia sem esse nível) ou se o SD é inválido (≤ 0).
+ */
+function calcularZScore(valor, alvo, sd) {
+  if (valor === null || alvo === null || sd === null || sd <= 0) return null;
+  return (valor - alvo) / sd;
+}
+
+// FIM_CALCULOS_NIVEIS
+
+/* =====================================================================
+   ███ MOTOR DE REGRAS DE WESTGARD (lógica pura — sem React, sem DOM) ███
+   ---------------------------------------------------------------------
+   Entrada : z[nivel][dia] = Z-Score de cada resultado (null = sem resultado).
+   Saída   : { violacoes, marcas, ultimoDia, assinatura }
+     violacoes → uma entrada por (regra, dia de detecção), mais recentes primeiro
+     marcas    → marcas[nivel][dia] = [regras] que envolvem aquele ponto (usado no gráfico)
+   Avalia DENTRO de cada nível (histórico) e ENTRE níveis (mesma corrida / pooled).
+   ===================================================================== */
+// INÍCIO_MOTOR_REGRAS
+
+/* Propriedades FIXAS de cada regra (tipo de erro que ela indica).
+   A SEVERIDADE (Desativada / Alerta / Rejeição) NÃO é fixa: vem da configuração (cfg) do laboratório. */
+const REGRAS_INFO = {
+  "1_2s": { erro: "Indefinido" },
+  "1_3s": { erro: "Aleatório" },
+  "2_2s": { erro: "Sistemático" },
+  "R_4s": { erro: "Aleatório" },
+  "4_1s": { erro: "Sistemático" },
+  "10_x": { erro: "Sistemático" },
+  "7T":   { erro: "Sistemático" }
+};
+const TIPO_ROTULO = { alerta: "Alerta", rejeicao: "Rejeição" };   // "off" = regra desativada (não é avaliada)
+/* Padrões clássicos: valores possíveis de cada regra = "off" | "alerta" | "rejeicao". */
+const CFG_PADRAO = { "1_2s": "alerta", "1_3s": "rejeicao", "2_2s": "rejeicao", "R_4s": "rejeicao", "4_1s": "rejeicao", "10_x": "rejeicao", "7T": "alerta" };
+
+/* Texto curto da regra para rótulos no gráfico: "1_3s" → "1₃s", "10_x" → "10x", "7T" → "7T". */
+function rotuloTxt(regra) {
+  return regra.replace(/_(\d)/, (m, d) => "₀₁₂₃₄₅₆₇₈₉"[d]).replace("_", "");
+}
+
+/* Converte as corridas em Z-Scores por nível: z[nivel][dia]. Nível sem parâmetros válidos → só null. */
+function montarZ(corridas, parametros) {
+  return parametros.map((p, i) => corridas.map(r => (p ? calcularZScore(r[i], p.alvo, p.sd) : null)));
+}
+
+function avaliarRegras(z, cfg = CFG_PADRAO) {   // cfg: severidade de cada regra (ver CFG_PADRAO)
+  const bruto = [];                                  // violações antes de agrupar
+  const on = r => !!cfg[r] && cfg[r] !== "off";           // regra desativada nunca é avaliada
+  const add = (regra, pts, escopo) => {
+    if (!on(regra)) return;
+    bruto.push({ regra, pts, escopo, dia: Math.max(...pts.map(p => p.d)) });
+  };
+
+  // Todos os pontos da janela do MESMO lado e além de "lim" SD (lim = 0 → só o lado do alvo).
+  const mesmoLado = (jan, lim) => jan.every(p => p.z > lim) || jan.every(p => p.z < -lim);
+  const sobe  = jan => jan.every((p, i) => i === 0 || p.z > jan[i - 1].z);
+  const desce = jan => jan.every((p, i) => i === 0 || p.z < jan[i - 1].z);
+
+  // Janela deslizante: testa cada grupo de n pontos consecutivos de "seq".
+  // exigeMulti = só vale se a janela envolve mais de um nível (análise entre níveis).
+  const janelas = (seq, n, teste, regra, escopo, exigeMulti) => {
+    for (let i = 0; i + n <= seq.length; i++) {
+      const jan = seq.slice(i, i + n);
+      if (exigeMulti && new Set(jan.map(p => p.n)).size < 2) continue;
+      if (teste(jan)) add(regra, jan, escopo);
+    }
+  };
+
+  // Regras de sequência (2_2s, 4_1s, 10_x) — iguais dentro de um nível e entre níveis.
+  const regrasDeSequencia = (seq, escopo, multi) => {
+    janelas(seq, 2,  j => mesmoLado(j, 2), "2_2s", escopo, multi);
+    janelas(seq, 4,  j => mesmoLado(j, 1), "4_1s", escopo, multi);
+    janelas(seq, 10, j => mesmoLado(j, 0), "10_x", escopo, multi);
+  };
+
+  // ---- 1) DENTRO DE CADA NÍVEL (histórico do nível, ignorando dias sem resultado) ----
+  z.forEach((serie, n) => {
+    const seq = [];
+    serie.forEach((v, d) => { if (v !== null) seq.push({ z: v, n, d }); });
+    const esc = "mesmo nível (histórico)";
+    seq.forEach(p => {
+      if (Math.abs(p.z) > 3 && on("1_3s")) add("1_3s", [p], esc);
+      else if (Math.abs(p.z) > 2) add("1_2s", [p], esc);       // 1_2s não repete o que a 1_3s já cobre (salvo se a 1_3s estiver desativada)
+    });
+    regrasDeSequencia(seq, esc, false);
+    janelas(seq, 2, j => (j[0].z > 2 && j[1].z < -2) || (j[0].z < -2 && j[1].z > 2), "R_4s", esc, false);
+    janelas(seq, 7, j => sobe(j) || desce(j), "7T", esc, false);   // tendência: 7 subindo ou 7 descendo
+  });
+
+  // ---- 2) ENTRE NÍVEIS ----
+  // 2a) Sequência "pooled" em ordem cronológica (dia, depois nível): 2_2s, 4_1s e 10_x entre níveis.
+  const pooled = [];
+  const nDias = Math.max(0, ...z.map(s => s.length));
+  for (let d = 0; d < nDias; d++) z.forEach((s, n) => { if (s[d] != null) pooled.push({ z: s[d], n, d }); });
+  regrasDeSequencia(pooled, "entre níveis", true);
+  // 2b) R_4s clássico: na MESMA corrida, um nível > +2 SD e outro < −2 SD.
+  for (let d = 0; d < nDias; d++) {
+    const dia = pooled.filter(p => p.d === d);
+    const alto = dia.find(p => p.z > 2), baixo = dia.find(p => p.z < -2);
+    if (alto && baixo) add("R_4s", [alto, baixo], "entre níveis (mesma corrida)");
+  }
+
+  // ---- 3) AGRUPA (mesma regra + mesmo dia = um alerta) ----
+  const mapa = new Map();
+  bruto.forEach(v => {
+    const k = v.regra + "|" + v.dia;
+    const m = mapa.get(k) || { regra: v.regra, dia: v.dia, erro: REGRAS_INFO[v.regra].erro, tipo: TIPO_ROTULO[cfg[v.regra]], pts: [], escopos: new Set() };
+    v.pts.forEach(p => { if (!m.pts.some(q => q.n === p.n && q.d === p.d)) m.pts.push(p); });
+    m.escopos.add(v.escopo);
+    mapa.set(k, m);
+  });
+  const violacoes = [...mapa.values()].map(m => ({
+    ...m, escopos: [...m.escopos],
+    pts: m.pts.sort((a, b) => a.d - b.d || a.n - b.n),
+    niveis: [...new Set(m.pts.map(p => p.n))].sort()
+  })).sort((a, b) => b.dia - a.dia || (a.tipo === b.tipo ? 0 : a.tipo === "Rejeição" ? -1 : 1));
+
+  const marcas = z.map(() => ({}));
+  violacoes.forEach(v => v.pts.forEach(p => {
+    const l = marcas[p.n][p.d] || (marcas[p.n][p.d] = []);
+    if (!l.includes(v.regra)) l.push(v.regra);
+  }));
+  let ultimoDia = -1;
+  z.forEach(s => s.forEach((v, d) => { if (v !== null && d > ultimoDia) ultimoDia = d; }));
+  const tipos = {};   // tipos[regra] = "Alerta" | "Rejeição" (só regras ativas)
+  Object.keys(cfg).forEach(r => { if (on(r)) tipos[r] = TIPO_ROTULO[cfg[r]]; });
+  const assinatura = violacoes.map(v => v.regra + "/" + v.tipo + "@" + v.dia + ":" + v.pts.map(p => p.n + "." + p.d).join(",")).join(";");
+  return { violacoes, marcas, ultimoDia, assinatura, tipos };
+}
+
+/* Conduta por SEVERIDADE (como o laboratório configurou a regra). Texto educacional. */
+const CONDUTA_SEVERIDADE = {
+  "Rejeição": { titulo: "Conduta (rejeição)", itens: [
+    "Bloquear a liberação da rotina.",
+    "Investigar a causa (veja onde procurar, abaixo).",
+    "Corrigir e repetir os controles; só liberar com controles aceitáveis.",
+    "Avaliar o impacto em resultados já emitidos e registrar a ação."] },
+  "Alerta": { titulo: "Conduta (alerta)", itens: [
+    "Investigar a tendência, registrar a ocorrência e verificar manutenções.",
+    "A corrida pode ser liberada com cautela, dependendo do POP do laboratório.",
+    "Acompanhar os próximos controles; se o padrão persistir, ampliar a investigação ou tratar como rejeição, conforme o POP."] }
+};
+/* Onde investigar, adaptado ao tipo de erro (sistemático × aleatório). */
+const CAUSAS = {
+  "1_2s": ["Conferir erros simples: identificação do controle, volume pipetado, digitação.", "Examinar as demais regras com os resultados do dia e anteriores.", "Se o alerta se repetir, pode ser início de erro sistemático ou aumento da imprecisão."],
+  "1_3s": ["Estabilidade da amostra controle: preparo, validade, armazenamento, evaporação, contaminação.", "Pipetagem, volume e validade do reagente, bolhas e condições do equipamento (predomina erro aleatório).", "Repetir o controle; se persistir, verificar a calibração."],
+  "2_2s": ["Calibração e calibrador; recalibrar se indicado.", "Troca de lote de reagente ou calibrador e condições de armazenamento.", "Manutenção e alterações recentes no equipamento (lâmpada, temperatura, sondas).", "Estabilidade do material controle (lote novo ou deteriorado)."],
+  "R_4s": ["Fontes de imprecisão: pipetagem, bolhas, mistura inadequada do controle, obstrução, oscilação de temperatura.", "Reconstituição e manuseio do material controle.", "Recalibrar não corrige erro aleatório: exclua antes as causas de imprecisão."],
+  "4_1s": ["Deriva de reagente ou calibrador; avaliar troca de lote.", "Calibração e manutenção preventiva; desgaste de componentes.", "Estabilidade do material controle ao longo do tempo."],
+  "10_x": ["Viés persistente: calibração, lote de reagente e calibrador, manutenção do equipamento.", "Estabilidade do material controle (mudança ou deterioração do lote).", "Avaliar se o alvo do controle ainda é adequado antes de alterar o processo."],
+  "7T": ["Deterioração gradual de reagente, calibrador ou material controle.", "Desgaste de lâmpada, filtros e sondas; variação de temperatura.", "Programar manutenção ou troca de lote antes de violar limites de rejeição."]
+};
+// FIM_MOTOR_REGRAS
+
+const NIVEL_PADRAO = { modo: "sd", alvo: "", sd: "", min: "", max: "", k: "2" };
+// Valores fictícios de exemplo, só para você poder testar de imediato.
+const CONFIG_INICIAL = {
+  numNiveis: 2,
+  niveis: [
+    { ...NIVEL_PADRAO, alvo: "50", sd: "2" },
+    { ...NIVEL_PADRAO, alvo: "100", sd: "4" },
+    { ...NIVEL_PADRAO, alvo: "200", sd: "8" }
+  ]
+};
+const DIAS_MINIMOS = 10;   // o eixo X mostra pelo menos 10 dias, para as linhas de referência aparecerem desde o 1º ponto
+
+/* =====================================================================
+   COMPONENTES
+   ===================================================================== */
+function Campo({ id, rotulo, valor, onChange, dica }) {
+  return html`<div>
+    <label htmlFor=${id}>${rotulo}</label>
+    <input id=${id} type="text" inputMode="decimal" autoComplete="off" placeholder=${dica} value=${valor} onChange=${e => onChange(e.target.value)} />
+  </div>`;
+}
+
+function PainelConfiguracao({ config, setConfig }) {
+  const mudarNivel = (i, campo, valor) =>
+    setConfig(c => ({ ...c, niveis: c.niveis.map((n, j) => (j === i ? { ...n, [campo]: valor } : n)) }));
+
+  return html`<section className="painel" aria-labelledby="t-cfg">
+    <h2 id="t-cfg">Configuração dos controles</h2>
+    <div className="campos">
+      <div>
+        <label htmlFor="num-niveis">Quantidade de níveis</label>
+        <select id="num-niveis" value=${config.numNiveis} onChange=${e => setConfig(c => ({ ...c, numNiveis: Number(e.target.value) }))}>
+          ${[1, 2, 3].map(n => html`<option key=${n} value=${n}>${n} ${n === 1 ? "nível" : "níveis"}</option>`)}
+        </select>
+      </div>
+    </div>
+    ${config.niveis.slice(0, config.numNiveis).map((n, i) => {
+      const p = calcularParametros(n);
+      return html`<fieldset key=${i} className="nivel-cfg">
+        <legend>Nível ${i + 1}</legend>
+        <div className="campos">
+          <div>
+            <label htmlFor=${"modo-" + i}>Definir por</label>
+            <select id=${"modo-" + i} value=${n.modo} onChange=${e => mudarNivel(i, "modo", e.target.value)}>
+              <option value="sd">Alvo e SD</option>
+              <option value="range">Intervalo aceitável</option>
+            </select>
+          </div>
+          ${n.modo === "sd"
+            ? html`<${Campo} id=${"alvo-" + i} rotulo="Alvo (média esperada)" valor=${n.alvo} onChange=${v => mudarNivel(i, "alvo", v)} dica="Ex.: 100" />
+                   <${Campo} id=${"sd-" + i} rotulo="SD esperado" valor=${n.sd} onChange=${v => mudarNivel(i, "sd", v)} dica="Ex.: 4" />`
+            : html`<${Campo} id=${"min-" + i} rotulo="Limite inferior" valor=${n.min} onChange=${v => mudarNivel(i, "min", v)} dica="Ex.: 92" />
+                   <${Campo} id=${"max-" + i} rotulo="Limite superior" valor=${n.max} onChange=${v => mudarNivel(i, "max", v)} dica="Ex.: 108" />
+                   <div>
+                     <label htmlFor=${"k-" + i}>O intervalo equivale a</label>
+                     <select id=${"k-" + i} value=${n.k} onChange=${e => mudarNivel(i, "k", e.target.value)}>
+                       <option value="2">±2 SD</option>
+                       <option value="3">±3 SD</option>
+                     </select>
+                   </div>`}
+        </div>
+        <p className=${p ? "dica" : "erro"}>
+          ${p ? "Alvo " + formatar(p.alvo, 2) + " · SD " + formatar(p.sd, 3) + " · ±3 SD: " + formatar(p.alvo - 3 * p.sd, 2) + " a " + formatar(p.alvo + 3 * p.sd, 2)
+              : "Preencha valores válidos (SD maior que zero; limite superior maior que o inferior)."}
+        </p>
+      </fieldset>`;
+    })}
+  </section>`;
+}
+
+function FormularioCorrida({ numNiveis, entradas, setEntradas, erro, pronto, dia, cheio, onAdicionar, onLimpar }) {
+  return html`<section className="painel" aria-labelledby="t-entrada">
+    <h2 id="t-entrada">Entrada de dados · Dia ${dia}</h2>
+    <form onSubmit=${onAdicionar} noValidate>
+      <div className="campos">
+        ${Array.from({ length: numNiveis }, (_, i) => html`<${Campo} key=${i} id=${"res-" + i} rotulo=${"Resultado do Nível " + (i + 1)}
+            valor=${entradas[i]} onChange=${v => setEntradas(e => e.map((x, j) => (j === i ? v : x)))} dica="Ex.: 100,5" />`)}
+      </div>
+      <div className="linha" style=${{ marginTop: "12px" }}>
+        <button type="submit" className="primario" disabled=${!pronto || cheio}>Adicionar Resultado</button>
+        <button type="button" className="secundario" onClick=${onLimpar}>Limpar resultados</button>
+      </div>
+      <div role="alert">${erro && html`<p className="erro">${erro}</p>`}</div>
+      ${!pronto && html`<p className="dica">Complete a configuração acima para liberar a entrada de dados.</p>`}
+      <p className="dica">Aceita vírgula ou ponto decimal. Os níveis são lançados juntos, na mesma corrida; deixe em branco o nível que não foi analisado no dia (aparece como "—"). Máximo de ${MAX_DIAS} dias.</p>
+    </form>
+  </section>`;
+}
+
+function ListaResultados({ corridas, numNiveis }) {
+  return html`<section className="painel" aria-labelledby="t-lista">
+    <h2 id="t-lista">Resultados inseridos</h2>
+    ${corridas.length === 0
+      ? html`<p className="vazio">Nenhum resultado ainda.</p>`
+      : html`<div className="lista"><table>
+          <thead><tr><th>Dia</th>${Array.from({ length: numNiveis }, (_, i) => html`<th key=${i} className="num">Nível ${i + 1}</th>`)}</tr></thead>
+          <tbody>${corridas.map((r, d) => html`<tr key=${d}><td>Dia ${d + 1}</td>
+            ${Array.from({ length: numNiveis }, (_, i) => html`<td key=${i} className="num">${r[i] === null ? "—" : r[i].toLocaleString("pt-BR", { maximumFractionDigits: 6 })}</td>`)}</tr>`)}</tbody>
+        </table></div>`}
+  </section>`;
+}
+
+/* Gráfico de Levey-Jennings de UM nível.
+   As linhas de referência vêm do Alvo e SD ESPERADOS (configuração), não dos pontos digitados. */
+function GraficoNivel({ corridas, idx, alvo, sd, aval }) {
+  const canvasRef = useRef(null);
+  const chartOk = typeof Chart !== "undefined";
+
+  useEffect(() => {
+    if (!chartOk) return;
+    const valores = corridas.map(r => r[idx]);                 // pode conter null (dia sem esse nível)
+    const limites = calcularLimites(alvo, sd);                 // FIXOS: alvo ± k × SD esperado
+    const dias = Math.max(valores.length, DIAS_MINIMOS);
+    const rotulos = Array.from({ length: dias }, (_, i) => "Dia " + (i + 1));
+
+    const serieResultados = {
+      label: "Resultados", data: valores, spanGaps: false,
+      borderColor: "#1d2420", backgroundColor: "#1d2420",
+      ...estiloPontos(aval, idx, valores.length, "#1d2420"),      // pontos que violam regras ficam vermelhos/laranja
+      borderWidth: 2, pointHoverRadius: 6, tension: 0, order: 0
+    };
+    const seriesLimites = limites.map(({ k, valor }) => {
+      const e = ESTILO_LINHAS[Math.abs(k)];
+      return {
+        label: e.nome, data: rotulos.map(() => valor),
+        borderColor: e.cor, borderWidth: e.largura, borderDash: e.tracejado,
+        pointRadius: 0, pointHitRadius: 0, tension: 0, order: 1,
+        esconderNaLegenda: k < 0,
+        rotuloFim: k === 0 ? "Alvo" : (k > 0 ? "+" : "−") + Math.abs(k) + " SD"
+      };
+    });
+
+    // Eixo Y: cobre −3 SD a +3 SD e também qualquer resultado fora desses limites.
+    const todos = [...valores.filter(v => v !== null), ...limites.map(l => l.valor)];
+    const minimo = Math.min(...todos), maximo = Math.max(...todos);
+    const folga = (maximo - minimo) * 0.08;
+
+    const grafico = new Chart(canvasRef.current, {
+      type: "line",
+      data: { labels: rotulos, datasets: [serieResultados, ...seriesLimites] },
+      plugins: [pluginRotulosLinhas, pluginRotulosViolacao],
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: "nearest", intersect: true },
+        layout: { padding: { right: 52, top: 16 } },
+        scales: {
+          x: { title: { display: true, text: "Corrida / dia" }, grid: { display: false } },
+          y: { min: minimo - folga, max: maximo + folga, title: { display: true, text: "Resultado do controle" }, ticks: { callback: v => fmtNum(v, 1) } }
+        },
+        plugins: {
+          legend: { position: "bottom", labels: { filter: (item, dados) => !dados.datasets[item.datasetIndex].esconderNaLegenda } },
+          tooltip: { filter: item => item.datasetIndex === 0, callbacks: { label: c => "Resultado: " + fmtNum(c.parsed.y, 3) } }
+        }
+      }
+    });
+    return () => grafico.destroy();
+  }, [corridas, idx, alvo, sd, aval.assinatura]);
+
+  if (!chartOk) return html`<p className="erro">${MSG_SEM_GRAFICO}</p>`;
+  return html`<div className="caixa-grafico">
+    <canvas ref=${canvasRef} role="img" aria-label=${"Gráfico de Levey-Jennings do Nível " + (idx + 1) + ", alvo " + fmtNum(alvo, 2) + " e SD esperado " + fmtNum(sd, 3) + "."}></canvas>
+  </div>`;
+}
+
+const MSG_SEM_GRAFICO = "Não foi possível carregar a biblioteca de gráficos (Chart.js). Verifique a conexão com a internet e recarregue a página. As estatísticas continuam funcionando.";
+const COR_NIVEIS = ["#1f5fa8", "#2f8f5b", "#7b3fa0"];   // Nível 1 azul, Nível 2 verde, Nível 3 roxo
+
+/* =====================================================================
+   ███ COMPONENTES VISUAIS (React) — usam o Motor de Regras acima ███
+   ===================================================================== */
+const COR_REJEICAO = "#b3261e", COR_ALERTA = "#c77700";
+
+/* "1_3s" → 1<sub>3s</sub>;  "7T" → 7T */
+function rotuloHtml(regra) {
+  const m = regra.match(/^(.+?)_(.+)$/);
+  return m ? html`${m[1]}<sub>${m[2]}</sub>` : regra;
+}
+
+/* Estilo dos pontos do gráfico: vermelho = rejeição, laranja = alerta, + rótulo da regra acima do ponto. */
+function estiloPontos(aval, nivel, n, corBase) {
+  const m = (aval && aval.marcas[nivel]) || {};
+  const d = Array.from({ length: n }, (_, i) => i);
+  const cor = i => !m[i] ? corBase : m[i].some(r => aval.tipos[r] === "Rejeição") ? COR_REJEICAO : COR_ALERTA;
+  return {
+    pointBackgroundColor: d.map(cor), pointBorderColor: d.map(cor),
+    pointRadius: d.map(i => (m[i] ? 7 : 4)),
+    rotulosPontos: d.map(i => (m[i] ? m[i].map(rotuloTxt).join(" ") : "")), corRotulos: d.map(cor)
+  };
+}
+
+// Plugin do Chart.js: escreve a(s) regra(s) violada(s) acima do ponto.
+const pluginRotulosViolacao = {
+  id: "rotulosViolacao",
+  afterDatasetsDraw(g) {
+    g.data.datasets.forEach((s, i) => {
+      if (!s.rotulosPontos) return;
+      g.getDatasetMeta(i).data.forEach((pt, d) => {
+        if (!s.rotulosPontos[d]) return;
+        g.ctx.save(); g.ctx.fillStyle = s.corRotulos[d]; g.ctx.font = "bold 12px system-ui, sans-serif";
+        g.ctx.textAlign = "center"; g.ctx.fillText(s.rotulosPontos[d], pt.x, pt.y - 12); g.ctx.restore();
+      });
+    });
+  }
+};
+
+/* Painel de configuração: severidade de cada regra (Desativada / Alerta / Rejeição). */
+const COR_SEV = { off: "#8a948e", alerta: "#c77700", rejeicao: "#b3261e" };
+const DESCR_REGRAS = { "1_2s": "1 resultado além de ±2 SD", "1_3s": "1 resultado além de ±3 SD", "2_2s": "2 seguidos além de 2 SD, mesmo lado", "R_4s": "um > +2 SD e outro < −2 SD", "4_1s": "4 seguidos além de 1 SD, mesmo lado", "10_x": "10 seguidos do mesmo lado da média", "7T": "7 seguidos subindo ou descendo" };
+function PainelRegras({ regrasCfg, setRegrasCfg }) {
+  const padrao = Object.keys(CFG_PADRAO).every(r => regrasCfg[r] === CFG_PADRAO[r]);
+  const nenhuma = Object.keys(CFG_PADRAO).every(r => regrasCfg[r] === "off");
+  return html`<section className="painel" aria-labelledby="t-regras">
+    <h2 id="t-regras">Configuração das regras de Westgard</h2>
+    <p className="dica" style=${{ marginTop: 0 }}>Defina como o laboratório trata cada regra. <strong>Rejeição</strong> bloqueia a liberação da rotina; <strong>Alerta</strong> pede investigação e registro, e a corrida pode ser liberada com cautela conforme o POP. Regras de longo prazo (4<sub>1s</sub>, 10<sub>x</sub>, 7T) costumam variar conforme o planejamento da qualidade e o Sigma do método.</p>
+    <div className="regras-cfg">
+      ${Object.keys(CFG_PADRAO).map(r => html`<div key=${r} className="cfg-regra" style=${{ borderLeft: "4px solid " + COR_SEV[regrasCfg[r]] }}>
+        <label htmlFor=${"sev-" + r}><span className="regra-nome">${rotuloHtml(r)}</span><span className="dica" style=${{ display: "block", margin: 0 }}>${DESCR_REGRAS[r]}</span></label>
+        <select id=${"sev-" + r} value=${regrasCfg[r]} onChange=${e => { const v = e.target.value; setRegrasCfg(c => ({ ...c, [r]: v })); }}>
+          <option value="off">Desativada</option>
+          <option value="alerta">Alerta (Warning)</option>
+          <option value="rejeicao">Rejeição (Rejection)</option>
+        </select>
+      </div>`)}
+    </div>
+    ${regrasCfg["1_2s"] === "rejeicao" && html`<p className="dica">Atenção: usar 1<sub>2s</sub> como rejeição gera muitos falsos alarmes (cerca de 5% dos resultados em um sistema estável).</p>`}
+    ${nenhuma && html`<p className="erro">Todas as regras estão desativadas: o sistema não detectará violações.</p>`}
+    <div className="linha" style=${{ marginTop: "12px" }}>
+      <button type="button" className="secundario" disabled=${padrao} onClick=${() => setRegrasCfg({ ...CFG_PADRAO })}>Restaurar padrão clássico</button>
+    </div>
+  </section>`;
+}
+
+/* Painel "Alertas do Sistema": decisão da última corrida + lista de violações com condutas. */
+function AlertasSistema({ aval }) {
+  const { violacoes, ultimoDia } = aval;
+  const daUltima = violacoes.filter(v => v.dia === ultimoDia);
+  const nomes = daUltima.map(v => rotuloTxt(v.regra)).join(", ");
+  const dia = ultimoDia + 1;
+  let banner = null;
+  if (ultimoDia >= 0) {
+    if (daUltima.some(v => v.tipo === "Rejeição"))
+      banner = ["rej", "Dia " + dia + ": REJEIÇÃO (" + nomes + "). Bloquear a liberação, investigar a causa, corrigir e repetir os controles."];
+    else if (daUltima.length)
+      banner = ["alerta", "Dia " + dia + ": ALERTA (" + nomes + "). Investigar tendência, registrar a ocorrência e verificar manutenções. A corrida pode ser liberada com cautela, conforme o POP."];
+    else
+      banner = ["ok", "Dia " + dia + ": nenhuma regra violada na última corrida." + (violacoes.length ? " Há ocorrências anteriores abaixo." : "")];
+  }
+  const nivelTxt = v => (v.niveis.length > 1 ? "Níveis " + v.niveis.map(n => n + 1).join(" e ") : "Nível " + (v.niveis[0] + 1));
+  const ponto = p => "N" + (p.n + 1) + "·Dia " + (p.d + 1);
+  const pontos = v => (v.pts.length > 6 ? ponto(v.pts[0]) + " … " + ponto(v.pts[v.pts.length - 1]) : v.pts.map(ponto).join(", "));
+
+  return html`<section className="painel painel-grafico" aria-labelledby="t-alertas">
+    <h2 id="t-alertas">Alertas do Sistema</h2>
+    <div aria-live="polite">
+      ${banner ? html`<div className=${"banner " + banner[0]}>${banner[1]}</div>`
+               : html`<p className="vazio">Insira resultados para o sistema avaliar as regras de Westgard.</p>`}
+      ${ultimoDia >= 0 && violacoes.length === 0 && html`<p className="vazio">Nenhuma violação detectada em todo o histórico.</p>`}
+    </div>
+    <div className="lista-alertas">
+      ${violacoes.map(v => html`<details key=${v.regra + v.dia} className=${"regra " + (v.tipo === "Alerta" ? "sev-alerta" : "sev-rej")} open=${v.dia === ultimoDia}>
+        <summary>
+          <span className="regra-nome">${rotuloHtml(v.regra)}</span>
+          <span className=${"selo " + (v.tipo === "Alerta" ? "alerta" : "rejeicao")}>${v.tipo}</span>
+          <span className="selo neutro">Erro ${v.erro.toLowerCase()}</span>
+          <span>Dia ${v.dia + 1} · ${nivelTxt(v)}</span>
+        </summary>
+        <dl>
+          <dt>Como foi detectada</dt><dd>${v.escopos.join(" e ")}. Pontos: ${pontos(v)}.</dd>
+          <dt>${CONDUTA_SEVERIDADE[v.tipo].titulo}</dt>
+          <dd><ul>${CONDUTA_SEVERIDADE[v.tipo].itens.map((c, i) => html`<li key=${i}>${c}</li>`)}</ul></dd>
+          <dt>Onde investigar (erro ${v.erro.toLowerCase()})</dt>
+          <dd><ul>${CAUSAS[v.regra].map((c, i) => html`<li key=${i}>${c}</li>`)}</ul></dd>
+        </dl>
+      </details>`)}
+    </div>
+    <p className="dica">Simulação educacional: as condutas são sugestões gerais; a decisão real segue os procedimentos do laboratório.</p>
+  </section>`;
+}
+
+/* ---------------- Modo Treinamento / Exercícios ---------------- */
+// Dados mockados em Z-Score: niveis[nivel][dia]. O gabarito de "violações" vem do próprio Motor de Regras.
+const EXERCICIOS = [
+  { pergunta: "Observando o gráfico acima, qual regra foi violada (regra de rejeição)?",
+    contexto: "Controle do Nível 1, em Z-Score, nos últimos 8 dias.",
+    niveis: [[0.4, -0.3, 0.8, -0.5, 2.3, 2.6, 0.9, 0.2]],
+    opcoes: ["1₃s: um resultado além de 3 SD", "R₄s: um ponto acima de +2 SD e outro abaixo de −2 SD", "2₂s: dois resultados consecutivos além de +2 SD", "4₁s: quatro resultados seguidos além de 1 SD"],
+    correta: 2,
+    explicacao: "Os Dias 5 e 6 estão acima de +2 SD, ambos do mesmo lado do alvo: é a regra 2₂s, indicativa de erro sistemático. Cada ponto isolado já dispara o alerta 1₂s, mas é a combinação dos dois que, na configuração clássica, rejeita a corrida. Não há ponto além de 3 SD (1₃s) e não há pontos em lados opostos (R₄s)." },
+  { pergunta: "Frente a este gráfico, qual a decisão correta?",
+    contexto: "Níveis 1 (azul) e 2 (verde) na mesma corrida do Dia 5: um muito acima e outro muito abaixo do alvo.",
+    niveis: [[0.3, -0.4, 0.6, 0.1, 2.5, 0.4], [-0.2, 0.5, -0.3, 0.4, -2.3, -0.1]],
+    opcoes: ["Liberar a rotina: é apenas um alerta 1₂s", "Rejeitar a corrida e investigar fontes de erro aleatório (pipetagem, mistura do controle, bolhas, temperatura)", "Recalibrar o equipamento e liberar a rotina em seguida", "Trocar o lote de reagente imediatamente e manter a rotina"],
+    correta: 1,
+    explicacao: "No Dia 5, um nível passou de +2 SD e o outro de −2 SD: violação R₄s, que indica aumento da imprecisão (erro aleatório). A corrida deve ser rejeitada e as fontes de imprecisão investigadas. Recalibrar ou trocar lote não resolve erro aleatório, e liberar a rotina seria um risco." },
+  { pergunta: "Nenhum ponto passou de 2 SD, mas os resultados só sobem. Qual a decisão mais adequada?",
+    contexto: "Controle do Nível 1, em Z-Score, em 8 dias consecutivos.",
+    niveis: [[0.1, 0.3, 0.6, 0.8, 1.0, 1.3, 1.6, 1.8]],
+    opcoes: ["Ignorar: nenhum ponto ultrapassou os limites de controle", "Descartar o lote do controle e refazer toda a rotina", "Investigar a causa da deriva (reagente, calibrador, lâmpada, temperatura) e agir antes de violar limites de rejeição", "Aumentar o SD esperado para o gráfico voltar a ficar dentro dos limites"],
+    correta: 2,
+    explicacao: "Sete resultados consecutivos subindo formam a regra de tendência 7T: sinal de erro sistemático em desenvolvimento, mesmo com todos os pontos dentro dos limites. O ideal é investigar a causa (deterioração, calibração, manutenção) e corrigir antes de ultrapassar 2 SD ou 3 SD. Alterar o SD esperado apenas esconderia o problema." }
+];
+
+/* Mini-gráfico SVG do exercício. As violações só são destacadas depois que o aluno responde ("revelar"). */
+function GraficoExercicio({ niveis, aval, revelar }) {
+  const W = 360, H = 200, n = niveis[0].length;
+  const y = z => 100 - z * 27, x = i => 34 + i * (W - 50) / (n - 1);
+  const refs = [[3, COR_REJEICAO, ""], [2, COR_ALERTA, "6 4"], [1, "#8a948e", "2 4"], [0, "#4a524d", ""], [-1, "#8a948e", "2 4"], [-2, COR_ALERTA, "6 4"], [-3, COR_REJEICAO, ""]];
+  return html`<svg className="mini grande" viewBox=${"0 0 " + W + " " + H} role="img" aria-label=${"Gráfico de Levey-Jennings em Z-Score com " + niveis.length + " nível(is) e " + n + " dias."}>
+    ${refs.map(([z, cor, tr]) => html`<g key=${z}>
+      <line x1="30" x2=${W - 6} y1=${y(z)} y2=${y(z)} stroke=${cor} strokeWidth="1" strokeDasharray=${tr || undefined} />
+      <text x="2" y=${y(z) + 3}>${(z > 0 ? "+" : z < 0 ? "−" : "") + Math.abs(z)}</text></g>`)}
+    ${Array.from({ length: n }, (_, i) => html`<text key=${i} x=${x(i) - 8} y=${H - 6}>D${i + 1}</text>`)}
+    ${niveis.map((s, k) => html`<g key=${k}>
+      <polyline fill="none" stroke=${COR_NIVEIS[k]} strokeWidth="1.5" points=${s.map((z, i) => x(i) + "," + y(z)).join(" ")} />
+      ${s.map((z, i) => {
+        const m = revelar && aval.marcas[k][i];
+        const cor = !m ? COR_NIVEIS[k] : m.some(r => aval.tipos[r] === "Rejeição") ? COR_REJEICAO : COR_ALERTA;
+        return html`<g key=${i}><circle cx=${x(i)} cy=${y(z)} r=${m ? 6 : 3.5} fill=${cor} />
+          ${m && html`<text x=${x(i)} y=${y(z) - 10} textAnchor="middle" style=${{ fill: cor, fontWeight: 700, fontSize: "11px" }}>${m.map(rotuloTxt).join(" ")}</text>`}</g>`;
+      })}</g>`)}
+  </svg>`;
+}
+
+function Exercicios() {
+  const [i, setI] = useState(0);
+  const [escolha, setEscolha] = useState(null);
+  const [acertos, setAcertos] = useState(0);
+  const [fim, setFim] = useState(false);
+  const ex = EXERCICIOS[i];
+  const aval = avaliarRegras(ex.niveis, CFG_PADRAO);   // exercícios sempre usam a configuração clássica                      // Motor de Regras aplicado ao gráfico do exercício
+  const respondeu = escolha !== null;
+
+  function responder(k) { if (respondeu) return; setEscolha(k); if (k === ex.correta) setAcertos(a => a + 1); }
+  function proxima() { if (i + 1 < EXERCICIOS.length) { setI(i + 1); setEscolha(null); } else setFim(true); }
+  function refazer() { setI(0); setEscolha(null); setAcertos(0); setFim(false); }
+
+  if (fim) return html`<section className="painel" aria-labelledby="t-ex">
+    <h2 id="t-ex">Modo Treinamento · Resultado</h2>
+    <p className="banner ok">Você acertou ${acertos} de ${EXERCICIOS.length} perguntas.</p>
+    <p>${acertos === EXERCICIOS.length ? "Excelente! Você identifica as violações e a conduta correta." : "Revise o Guia de Regras de Westgard abaixo e tente novamente."}</p>
+    <button type="button" className="primario" onClick=${refazer}>Refazer exercícios</button>
+  </section>`;
+
+  const veredito = respondeu && escolha === ex.correta;
+  const detectadas = aval.violacoes.slice().sort((a, b) => a.dia - b.dia);
+  return html`<section className="painel" aria-labelledby="t-ex">
+    <h2 id="t-ex">Modo Treinamento · Exercícios</h2>
+    <p className="quiz-prog">Pergunta ${i + 1} de ${EXERCICIOS.length} · Acertos: ${acertos}</p>
+    <p className="dica" style=${{ marginTop: 0 }}>${ex.contexto}</p>
+    <${GraficoExercicio} niveis=${ex.niveis} aval=${aval} revelar=${respondeu} />
+    <p className="leg dica">Níveis:${ex.niveis.map((_, k) => html`<span key=${k}><i style=${{ background: COR_NIVEIS[k] }}></i>Nível ${k + 1}</span>`)}</p>
+    <h3 style=${{ margin: "12px 0 0", fontSize: "1.05rem" }}>${ex.pergunta}</h3>
+    <div className="opcoes" role="group" aria-label="Alternativas">
+      ${ex.opcoes.map((o, k) => html`<button key=${k} type="button" disabled=${respondeu && k !== escolha && k !== ex.correta}
+        className=${"opcao" + (respondeu && k === ex.correta ? " certa" : respondeu && k === escolha ? " errada" : "")}
+        onClick=${() => responder(k)}>${String.fromCharCode(65 + k)}) ${o}</button>`)}
+    </div>
+    ${respondeu && html`<div className=${"feedback " + (veredito ? "certo" : "errado")} role="status">
+      <h3>${veredito ? "Correto!" : "Incorreto."}</h3>
+      ${!veredito && html`<p><strong>Resposta correta:</strong> ${String.fromCharCode(65 + ex.correta)}) ${ex.opcoes[ex.correta]}</p>`}
+      <p>${ex.explicacao}</p>
+      <p><strong>O Motor de Regras detectou neste gráfico:</strong> ${detectadas.map(v => rotuloTxt(v.regra) + " (Dia " + (v.dia + 1) + ")").join("; ")}.</p>
+      <button type="button" className="primario" style=${{ marginTop: "8px" }} onClick=${proxima}>${i + 1 < EXERCICIOS.length ? "Próxima pergunta" : "Ver resultado"}</button>
+    </div>`}
+  </section>`;
+}
+
+/* Gráfico combinado: todos os níveis ativos convertidos em Z-Score, no mesmo eixo (−3 a +3). */
+function GraficoZScore({ corridas, parametros, aval }) {
+  const canvasRef = useRef(null);
+  // "chave" muda só quando alvo/SD mudam. Evita redesenhar o gráfico a cada tecla digitada.
+  const chave = parametros.map(p => (p ? p.alvo + "/" + p.sd : "x")).join("|");
+  const algumValido = parametros.some(p => p !== null);
+  const chartOk = typeof Chart !== "undefined";
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const rotulos = Array.from({ length: Math.max(corridas.length, DIAS_MINIMOS) }, (_, i) => "Dia " + (i + 1));
+    let zExtremo = 3;   // eixo Y = ±3; só cresce se algum ponto passar de ±3, para não esconder dados
+
+    const seriesNiveis = [];
+    parametros.forEach((p, i) => {
+      if (!p) return;                                        // nível sem configuração válida não entra
+      const brutos = corridas.map(r => r[i]);                // valores originais (para o tooltip)
+      const zs = brutos.map(v => calcularZScore(v, p.alvo, p.sd));
+      zs.forEach(z => { if (z !== null) zExtremo = Math.max(zExtremo, Math.ceil(Math.abs(z))); });
+      seriesNiveis.push({
+        label: "Nível " + (i + 1), data: zs, brutos, ehNivel: true, spanGaps: false,
+        borderColor: COR_NIVEIS[i], backgroundColor: COR_NIVEIS[i],
+        ...estiloPontos(aval, i, corridas.length, COR_NIVEIS[i]),
+        borderWidth: 2, pointHoverRadius: 6, tension: 0, order: 0
+      });
+    });
+
+    // Referências em Z fixo: 0, ±1, ±2, ±3 (a linha 0 é neutra para não confundir com o Nível 2 verde).
+    const seriesRef = [3, 2, 1, 0, -1, -2, -3].map(k => {
+      const e = ESTILO_LINHAS[Math.abs(k)];
+      return {
+        label: e.nome === "Média" ? "Alvo (Z = 0)" : e.nome, data: rotulos.map(() => k),
+        borderColor: k === 0 ? "#4a524d" : e.cor, borderWidth: e.largura, borderDash: e.tracejado,
+        pointRadius: 0, pointHitRadius: 0, tension: 0, order: 1,
+        esconderNaLegenda: k < 0,
+        rotuloFim: k === 0 ? "0" : (k > 0 ? "+" : "−") + Math.abs(k)
+      };
+    });
+
+    const grafico = new Chart(canvasRef.current, {
+      type: "line",
+      data: { labels: rotulos, datasets: [...seriesNiveis, ...seriesRef] },
+      plugins: [pluginRotulosLinhas, pluginRotulosViolacao],
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: "nearest", intersect: true },
+        layout: { padding: { right: 36, top: 16 } },
+        scales: {
+          x: { title: { display: true, text: "Corrida / dia" }, grid: { display: false } },
+          y: { min: -zExtremo, max: zExtremo, title: { display: true, text: "Z-Score (SDI)" },
+               ticks: { stepSize: 1, callback: v => (v > 0 ? "+" : "") + v } }
+        },
+        plugins: {
+          legend: { position: "bottom", labels: { filter: (item, dados) => !dados.datasets[item.datasetIndex].esconderNaLegenda } },
+          tooltip: {
+            filter: item => item.dataset.ehNivel === true,
+            callbacks: { label: c => c.dataset.label + ": Z = " + (c.parsed.y > 0 ? "+" : "") + fmtNum(c.parsed.y, 2) + " (valor " + fmtNum(c.dataset.brutos[c.dataIndex], 3) + ")" }
+          }
+        }
+      }
+    });
+    return () => grafico.destroy();
+  }, [corridas, chave, aval.assinatura]);
+
+  return html`<div>
+    ${!chartOk ? html`<p className="erro">${MSG_SEM_GRAFICO}</p>` : algumValido
+      ? html`<div className="caixa-grafico"><canvas ref=${canvasRef} role="img" aria-label="Gráfico combinado em Z-Score com todos os níveis ativos, eixo de menos 3 a mais 3."></canvas></div>`
+      : html`<p className="erro">Defina alvo e SD válidos em pelo menos um nível para ver o gráfico combinado.</p>`}
+    <p className="dica">Z = (resultado − alvo) ÷ SD esperado. Z = 0 é o alvo e +2 é 2 SD acima dele. Cada nível usa o próprio alvo e SD da configuração, então níveis com escalas diferentes ficam comparáveis no mesmo eixo.</p>
+  </div>`;
+}
+
+/* ---------------- Guia de Regras de Westgard (conteúdo educacional) ---------------- */
+const REGRAS_WESTGARD = [
+  { base: "1", sub: "2s", tipo: "Alerta", erroCurto: "Indefinido",
+    erro: "Pode ser erro aleatório ou sistemático; a regra sozinha não distingue.",
+    criterio: "Um resultado de controle fica acima de +2 SD ou abaixo de −2 SD. Em um sistema estável, isso ocorre por acaso em cerca de 5% dos resultados.",
+    conduta: "Não rejeita a corrida por si só. Use como gatilho para inspecionar as demais regras (1₃s, 2₂s, R₄s, 4₁s, 10ₓ, 7T) com os resultados do dia e dos dias anteriores. Se nenhuma for violada, a corrida segue, com atenção a novas ocorrências." },
+  { base: "1", sub: "3s", tipo: "Rejeição", erroCurto: "Aleatório",
+    erro: "Principalmente erro aleatório (um desvio muito grande também pode refletir erro sistemático).",
+    criterio: "Um resultado de controle fica acima de +3 SD ou abaixo de −3 SD.",
+    conduta: "Rejeitar a corrida. Investigar a causa (por exemplo: material de controle, reagente, pipetagem, equipamento), corrigir e verificar com novo controle antes de liberar resultados." },
+  { base: "2", sub: "2s", tipo: "Rejeição", erroCurto: "Sistemático",
+    erro: "Erro sistemático (deslocamento do processo analítico).",
+    criterio: "Dois resultados consecutivos ultrapassam o mesmo limite de 2 SD (ambos acima de +2 SD ou ambos abaixo de −2 SD). Vale entre níveis na mesma corrida e entre corridas para o mesmo nível.",
+    conduta: "Rejeitar a corrida. Procurar causas de desvio sistemático, como calibração, lote de reagente ou calibrador e alterações no equipamento; corrigir e reverificar com novo controle." },
+  { base: "R", sub: "4s", tipo: "Rejeição", erroCurto: "Aleatório",
+    erro: "Erro aleatório (aumento da imprecisão).",
+    criterio: "Dentro de uma mesma corrida, um resultado passa de +2 SD e outro passa de −2 SD, ou seja, a diferença entre eles é maior que 4 SD.",
+    conduta: "Rejeitar a corrida. Investigar fontes de imprecisão (por exemplo: pipetagem, bolhas, mistura inadequada, instabilidade de temperatura ou de reagente); corrigir e reverificar." },
+  { base: "4", sub: "1s", tipo: "Rejeição", configuravel: true, erroCurto: "Sistemático",
+    erro: "Erro sistemático em desenvolvimento (tendência ou deriva).",
+    criterio: "Quatro resultados consecutivos ficam do mesmo lado do alvo, todos além de 1 SD (todos acima de +1 SD ou todos abaixo de −1 SD).",
+    conduta: "Investigar a tendência (por exemplo: deterioração de reagente, calibração, desgaste de componentes) e programar manutenção se necessário. Classificação configurável: como rejeição (bloquear a liberação, investigar, corrigir e repetir os controles) ou como alerta (investigar a tendência, registrar e verificar manutenções, com liberação cautelosa conforme o POP). A escolha depende do planejamento da qualidade e do Sigma do método; não é uma regra universal." },
+  { base: "10", sub: "x", tipo: "Rejeição", configuravel: true, erroCurto: "Sistemático",
+    erro: "Erro sistemático (deslocamento persistente em relação ao alvo).",
+    criterio: "Dez resultados consecutivos ficam do mesmo lado do alvo (média), independentemente da distância.",
+    conduta: "Investigar viés persistente (calibração, lote de reagente ou calibrador, manutenção) e corrigir. Classificação configurável: como rejeição (bloquear a liberação, investigar, corrigir e repetir os controles) ou como alerta (investigar a tendência, registrar e verificar manutenções, com liberação cautelosa conforme o POP). A escolha depende do planejamento da qualidade e do Sigma do método; não é uma regra universal." },
+  { base: "7T", sub: "", tipo: "Alerta", configuravel: true, erroCurto: "Sistemático",
+    erro: "Erro sistemático em desenvolvimento (tendência ou deriva gradual).",
+    criterio: "Sete resultados consecutivos aumentando (cada um maior que o anterior) ou sete consecutivos diminuindo, mesmo que todos estejam dentro dos limites de controle.",
+    conduta: "Investigar a causa da deriva (por exemplo: deterioração gradual de reagente, calibrador ou material de controle, desgaste de lâmpada ou sondas, variação de temperatura) e corrigir antes que os limites sejam ultrapassados. Classificação configurável: como rejeição (bloquear a liberação, investigar, corrigir e repetir os controles) ou como alerta (investigar a tendência, registrar e verificar manutenções, com liberação cautelosa conforme o POP). A escolha depende do planejamento da qualidade e do Sigma do método; não é uma regra universal." }
+];
+
+/* Conteúdo extra de cada regra: significado, exemplo numérico e um mini-gráfico com a violação (em Z-Score). */
+const EXTRAS_REGRAS = {
+  "1_2s": { significado: "Resultado incomum, mas esperado por acaso em cerca de 5% das medições de um sistema estável. É um sinal de atenção, não uma prova de erro.",
+    exemplo: "Alvo 100 e SD 4: um resultado de 109 está a +2,25 SD, acima do limite de 108.",
+    pontos: [0.3, -0.5, 0.8, 2.4, 0.2, -0.4], destaque: [3] },
+  "1_3s": { significado: "Por acaso, isso ocorre em cerca de 0,3% das medições de um sistema estável. Por ser tão raro, é um forte indício de que algo mudou.",
+    exemplo: "Alvo 100 e SD 4: um resultado de 113 está a +3,25 SD, acima do limite de 112.",
+    pontos: [0.4, -0.2, 0.7, 3.3, 0.1, -0.6], destaque: [3] },
+  "2_2s": { significado: "Dois resultados seguidos do mesmo lado e além de 2 SD são muito improváveis por acaso (da ordem de 0,1%). Sugere que o processo inteiro se deslocou.",
+    exemplo: "Alvo 100 e SD 4: 109 no Dia 5 e 110 no Dia 6 (Z = +2,25 e +2,5), ambos acima de +2 SD.",
+    pontos: [0.5, -0.3, 2.3, 2.6, 1.0, 0.2], destaque: [2, 3] },
+  "R_4s": { significado: "Os controles da mesma corrida estão muito distantes entre si, um para cima e outro para baixo. Indica que a dispersão (imprecisão) aumentou naquele momento.",
+    exemplo: "Na mesma corrida: Nível 1 em Z = +2,5 e Nível 2 em Z = −2,3. A diferença é de 4,8 SD, maior que 4.",
+    pontos: [0.3, -0.4, 2.5, -2.3, 0.4, 0.6], destaque: [2, 3] },
+  "4_1s": { significado: "Mesmo sem nenhum ponto passar de 2 SD, quatro resultados seguidos do mesmo lado e além de 1 SD indicam que a média real se afastou do alvo.",
+    exemplo: "Quatro dias seguidos com Z entre +1,2 e +1,6: todos acima de +1 SD e nenhum acima de +2 SD.",
+    pontos: [0.4, 1.3, 1.5, 1.2, 1.6, 0.8], destaque: [1, 2, 3, 4] },
+  "10_x": { significado: "Se os resultados só oscilassem ao acaso, cada um teria 50% de chance de cair de cada lado do alvo. Dez seguidos do mesmo lado é raro e indica um deslocamento persistente.",
+    exemplo: "Dez dias seguidos acima do alvo, mesmo com todos os resultados dentro de ±1 SD.",
+    pontos: [0.3, 0.6, 0.2, 0.8, 0.5, 0.4, 0.9, 0.3, 0.7, 0.5], destaque: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+  "7T": { significado: "Em um sistema estável, os resultados oscilam para cima e para baixo. Sete seguidos subindo ou descendo sugerem uma deriva gradual (por exemplo, um reagente se deteriorando) que ainda não ultrapassou nenhum limite.",
+    exemplo: "Sete dias seguidos com Z = +0,1; +0,3; +0,6; +0,8; +1,0; +1,3; +1,6, cada valor maior que o anterior.",
+    pontos: [0.1, 0.3, 0.6, 0.8, 1.0, 1.3, 1.6, 1.9], destaque: [0, 1, 2, 3, 4, 5, 6] }
+};
+
+/* Mini-gráfico estático: pontos em Z-Score, linhas em 0, ±1, ±2 e ±3. Pontos vermelhos = violação. */
+function MiniGrafico({ pontos, destaque, descricao }) {
+  const W = 300, H = 120;
+  const y = z => 60 - z * 16;                                    // Z (−3..+3) -> altura
+  const x = i => 28 + i * (W - 40) / (pontos.length - 1);        // índice -> posição horizontal
+  const refs = [[3, "#b3261e", ""], [2, "#c77700", "6 4"], [1, "#8a948e", "2 4"], [0, "#4a524d", ""], [-1, "#8a948e", "2 4"], [-2, "#c77700", "6 4"], [-3, "#b3261e", ""]];
+  return html`<svg className="mini" viewBox=${"0 0 " + W + " " + H} role="img" aria-label=${descricao}>
+    ${refs.map(([z, cor, tr]) => html`<g key=${z}>
+      <line x1="28" x2=${W - 8} y1=${y(z)} y2=${y(z)} stroke=${cor} strokeWidth="1" strokeDasharray=${tr || undefined} />
+      <text x="2" y=${y(z) + 3}>${(z > 0 ? "+" : z < 0 ? "−" : "") + Math.abs(z)}</text>
+    </g>`)}
+    <polyline fill="none" stroke="#1d2420" strokeWidth="1.5" points=${pontos.map((z, i) => x(i) + "," + y(z)).join(" ")} />
+    ${pontos.map((z, i) => html`<circle key=${i} cx=${x(i)} cy=${y(z)} r=${destaque.includes(i) ? 5 : 3} fill=${destaque.includes(i) ? "#b3261e" : "#1d2420"} />`)}
+  </svg>`;
+}
+
+function GuiaWestgard() {
+  const regras = REGRAS_WESTGARD.map(r => ({ ...r, ...EXTRAS_REGRAS[r.base + (r.sub ? "_" + r.sub : "")] }));
+  const glossario = [
+    ["Alvo", "Valor médio esperado do material de controle."],
+    ["SD (desvio padrão)", "Medida da dispersão esperada dos resultados em torno do alvo."],
+    ["Z-Score", "Distância do resultado ao alvo, em SD: (resultado − alvo) ÷ SD."],
+    ["Corrida", "Conjunto de análises feitas sob as mesmas condições, com seus controles."],
+    ["Viés", "Diferença média entre os resultados obtidos e o alvo."],
+    ["Falso alarme", "Alerta ou rejeição sem que exista erro real, causado apenas pelo acaso."],
+    ["Sigma do método", "Medida do desempenho analítico: quanto maior, mais folga o método tem diante do erro permitido. Ajuda a planejar quais regras usar e como classificá-las (alerta ou rejeição)."]
+  ];
+  return html`<section className="painel painel-grafico" aria-labelledby="t-wg">
+    <h2 id="t-wg">Guia de Regras de Westgard</h2>
+    <p className="dica" style=${{ marginTop: 0 }}>
+      Conteúdo educacional. O simulador aplica estas regras automaticamente aos seus resultados (veja o painel Alertas do Sistema), e você pode definir a classificação de cada uma (desativada, alerta ou rejeição) no painel de configuração das regras. Na prática, a escolha das regras, a classificação e as condutas reais dependem dos procedimentos e do desempenho analítico de cada laboratório.
+    </p>
+
+    <div className="guia-intro">
+      <h3>O que são as regras de Westgard</h3>
+      <p>A multirregra de Westgard é um conjunto de critérios aplicados aos resultados do controle interno para decidir se uma corrida analítica parece estar sob controle. Cada regra enxerga melhor um tipo de problema; usadas em conjunto, detectam mais erros com menos falsos alarmes do que uma regra isolada. Os limites são medidos em desvios-padrão (SD) a partir do alvo.</p>
+      <h3>Erro aleatório e erro sistemático</h3>
+      <p><strong>Erro aleatório</strong> é uma variação imprevisível, para cima ou para baixo, que aumenta a dispersão (imprecisão); costuma aparecer como pontos isolados muito afastados. <strong>Erro sistemático</strong> empurra os resultados sempre na mesma direção (viés); aparece como uma sequência de pontos do mesmo lado do alvo, um deslocamento ou uma tendência.</p>
+      <h3>Como as regras são usadas em sequência</h3>
+      <p>1) Compare cada resultado com os limites de ±2 e ±3 SD. 2) Se algum passar de 2 SD (1<sub>2s</sub>), trate como alerta e examine as demais regras. 3) Se uma regra de rejeição for violada, a corrida é considerada fora de controle e a causa deve ser investigada. Regras configuradas como alerta pedem investigação e registro, mas não bloqueiam a rotina por si só. 4) Registre a ocorrência e a ação tomada. Notação: o número antes indica quantos resultados entram na regra (1<sub>2s</sub> = um resultado além de 2 SD; 10<sub>x</sub> = dez resultados do mesmo lado da média; 7T = sete resultados consecutivos subindo ou descendo).</p>
+      <h3>Alerta × Rejeição: depende do planejamento da qualidade</h3>
+      <p>As regras de um único ponto (1<sub>3s</sub>) e de poucos pontos (2<sub>2s</sub>, R<sub>4s</sub>) costumam ser tratadas como rejeição. Já as regras de <strong>longo prazo</strong> (4<sub>1s</sub>, 10<sub>x</sub>, 7T) enxergam deslocamentos e tendências que se formam ao longo de várias corridas, e a classificação delas não é universal. Em métodos com Sigma alto, que toleram pequenos desvios, o laboratório pode usá-las apenas como alerta, para investigar a tendência sem bloquear a rotina. Em métodos com Sigma baixo, que têm pouca margem de erro, elas tendem a ser usadas como rejeição. A decisão faz parte do planejamento da qualidade e deve estar descrita no POP.</p>
+    </div>
+
+    <h3 className="titulo-tabela">Resumo das regras</h3>
+    <div style=${{ overflowX: "auto" }}><table className="resumo">
+      <thead><tr><th>Regra</th><th>Classificação padrão</th><th>Erro indicado</th><th>Critério resumido</th></tr></thead>
+      <tbody>${regras.map(r => html`<tr key=${r.base + r.sub}>
+        <td><strong>${r.base}<sub>${r.sub}</sub></strong></td><td>${r.tipo}${r.configuravel ? " (configurável)" : ""}</td><td>${r.erroCurto}</td><td>${r.criterio.split(". ")[0].replace(/\.$/, "")}</td>
+      </tr>`)}</tbody>
+    </table></div>
+
+    <h3 className="titulo-tabela">Detalhes de cada regra</h3>
+    ${regras.map(r => html`<details key=${r.base + r.sub} className="regra">
+      <summary>
+        <span className="regra-nome">${r.base}<sub>${r.sub}</sub></span>
+        <span className=${"selo " + (r.tipo === "Alerta" ? "alerta" : "rejeicao")}>${r.tipo}</span>
+        <span className="selo neutro">${r.erroCurto}</span>
+      </summary>
+      <${MiniGrafico} pontos=${r.pontos} destaque=${r.destaque} descricao=${"Exemplo de violação da regra. " + r.exemplo} />
+      <p className="mini-legenda">Exemplo em Z-Score. Pontos vermelhos: resultados que violam a regra.</p>
+      <dl>
+        <dt>Critério da violação</dt><dd>${r.criterio}</dd>
+        <dt>O que significa</dt><dd>${r.significado}</dd>
+        <dt>Exemplo numérico</dt><dd>${r.exemplo}</dd>
+        <dt>Tipo de erro</dt><dd>${r.erro}</dd>
+        <dt>Classificação padrão</dt><dd>${r.tipo === "Alerta" ? "Regra de alerta (warning)" : "Regra de rejeição (rejection)"}. ${r.configuravel ? "Em regras de longo prazo, a classificação depende do planejamento da qualidade e do Sigma do método; não é uma lei universal." : "Pode ser reconfigurada no painel de configuração das regras."}</dd>
+        <dt>Conduta sugerida</dt><dd>${r.conduta}</dd>
+      </dl>
+    </details>`)}
+
+    <details className="regra">
+      <summary><span className="regra-nome" style=${{ fontSize: "1rem" }}>Glossário rápido</span></summary>
+      <dl>${glossario.map(g => html`<div key=${g[0]}><dt>${g[0]}</dt><dd>${g[1]}</dd></div>`)}</dl>
+    </details>
+  </section>`;
+}
+
+/* Gráfico + estatística real (dos pontos digitados) do nível ativo. */
+function NivelPainel({ idx, parametros, corridas, aval }) {
+  const serie = corridas.map(r => r[idx]).filter(v => v !== null);   // ignora dias sem esse nível
+  const n = serie.length;
+  const media = calcularMedia(serie);
+  const sd = calcularDesvioPadrao(serie);
+  const cv = calcularCV(sd, media);
+  const vies = parametros ? calcularVies(media, parametros.alvo) : null;
+  const cvEsperado = parametros ? calcularCV(parametros.sd, parametros.alvo) : null;
+  const sinal = v => (v !== null && v > 0 ? "+" : "");
+
+  const esperado = parametros ? [
+    ["Alvo", formatar(parametros.alvo, 2)],
+    ["SD esperado", formatar(parametros.sd, 3)],
+    ["CV esperado", cvEsperado === null ? "—" : formatar(cvEsperado, 2) + "%"]
+  ] : [];
+  const obtido = [
+    ["N", String(n)],
+    ["Média obtida", formatar(media, 3)],
+    ["SD obtido", formatar(sd, 3)],
+    ["CV%", cv === null ? "—" : formatar(cv, 2) + "%"],
+    ["Viés (média − alvo)", vies ? sinal(vies.absoluto) + formatar(vies.absoluto, 3) : "—"],
+    ["Viés %", vies && vies.percentual !== null ? sinal(vies.percentual) + formatar(vies.percentual, 2) + "%" : "—"]
+  ];
+
+  return html`<div className="nivel-grid">
+    <div>${parametros
+      ? html`<${GraficoNivel} corridas=${corridas} idx=${idx} alvo=${parametros.alvo} sd=${parametros.sd} aval=${aval} />`
+      : html`<p className="erro">Defina alvo e SD válidos deste nível na configuração para ver o gráfico.</p>`}</div>
+    <dl className="linhas-est" aria-live="polite">
+      ${esperado.map(r => html`<div key=${r[0]} className="esp"><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`)}
+      ${obtido.map(r => html`<div key=${r[0]}><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`)}
+    </dl>
+  </div>`;
+}
+
+/* =====================================================================
+   APLICATIVO — COMO O ESTADO MUDOU PARA SUPORTAR VÁRIOS NÍVEIS
+   ---------------------------------------------------------------------
+   ANTES:  valores   = [100, 102, 98, ...]               (uma lista só)
+   AGORA:  config    = { numNiveis, niveis: [ {modo, alvo, sd, min, max, k} × 3 ] }
+                       → parâmetros ESPERADOS de cada nível (como texto digitado)
+           corridas  = [ [n1, n2, n3], [n1, n2, n3], ... ]
+                       → uma LINHA por dia; cada linha tem 3 posições (nível 1, 2, 3).
+                         Posição de nível desativado ou não analisado no dia = null.
+           entradas  = ["", "", ""]   → texto dos campos do formulário do dia
+           modoGrafico = "separados" → como os gráficos são exibidos (separados, juntos em Z-Score, ou ambos)
+   Derivados (não são estado, são recalculados a cada render):
+           parametros → {alvo, sd} de cada nível ativo, via calcularParametros
+           pronto     → true se todos os níveis ativos têm parâmetros válidos
+   Reduzir o nº de níveis NÃO apaga dados: os valores continuam em corridas e
+   voltam a aparecer se o nível for reativado (dias antigos ficam com "—").
+   ===================================================================== */
+function App() {
+  const [config, setConfig] = useState(CONFIG_INICIAL);
+  const [corridas, setCorridas] = useState([]);
+  const [entradas, setEntradas] = useState(["", "", ""]);
+  const [erro, setErro] = useState("");
+  const [regrasCfg, setRegrasCfg] = useState(CFG_PADRAO);   // severidade de cada regra de Westgard
+  const [modoGrafico, setModoGrafico] = useState("separados");   // "separados" | "juntos" | "ambos"
+
+  const { numNiveis } = config;
+  const parametros = config.niveis.slice(0, numNiveis).map(calcularParametros);
+  const pronto = parametros.every(p => p !== null);
+  const mostrarJuntos = modoGrafico !== "separados";      // gráfico combinado em Z-Score
+  const mostrarSeparados = modoGrafico !== "juntos";      // um gráfico + estatísticas por nível
+  const aval = avaliarRegras(montarZ(corridas, parametros), regrasCfg);   // MOTOR DE REGRAS: roda a cada render, em tempo real
+  const emExercicios = modoGrafico === "exercicios";
+
+  function adicionar(e) {
+    e.preventDefault();
+    if (!pronto) { setErro("Complete a configuração dos níveis antes de inserir resultados."); return; }
+    if (corridas.length >= MAX_DIAS) { setErro("Limite de " + MAX_DIAS + " dias atingido."); return; }
+    const linha = [null, null, null];
+    let algum = false;
+    for (let i = 0; i < numNiveis; i++) {
+      if (entradas[i].trim() === "") continue;   // em branco = nível não analisado neste dia
+      const v = converterNumero(entradas[i]);
+      if (v === null) { setErro("Valor inválido no Nível " + (i + 1) + ". Digite um número, por exemplo 12,5 ou 100."); return; }
+      linha[i] = v; algum = true;
+    }
+    if (!algum) { setErro("Digite o resultado de pelo menos um nível."); return; }
+    setCorridas([...corridas, linha]);   // nova lista: o React exige não alterar a antiga
+    setEntradas(["", "", ""]);
+    setErro("");
+  }
+
+  function limpar() {
+    if (corridas.length === 0 || window.confirm("Apagar todos os resultados? A configuração dos níveis será mantida.")) {
+      setCorridas([]); setEntradas(["", "", ""]); setErro("");
+    }
+  }
+
+  return html`<div className="wrap">
+    <header>
+      <h1>QualiLab · Simulador Analítico</h1>
+      <p className="sub">Aprenda. Simule. Melhore.</p>
+    </header>
+
+    <p className="aviso">Simulação educacional: use valores fictícios (os valores iniciais são só exemplos). Não é orientação operacional; critérios e condutas reais dependem dos procedimentos e requisitos aplicáveis a cada laboratório.</p>
+
+    <nav className="abas" role="radiogroup" aria-label="Navegação principal">
+      ${[["separados", "Níveis separados"], ["juntos", "Todos juntos (Z-Score)"], ["ambos", "Separados e juntos"], ["exercicios", "Exercícios"]].map(([valor, rotulo]) =>
+        html`<button key=${valor} type="button" role="radio" className="aba" aria-checked=${modoGrafico === valor} onClick=${() => setModoGrafico(valor)}>${rotulo}</button>`)}
+    </nav>
+
+    ${emExercicios ? html`<${Exercicios} />` : html`<${React.Fragment}>
+      <${PainelConfiguracao} config=${config} setConfig=${setConfig} />
+      <${PainelRegras} regrasCfg=${regrasCfg} setRegrasCfg=${setRegrasCfg} />
+
+      <div className="grade">
+        <${FormularioCorrida} numNiveis=${numNiveis} entradas=${entradas} setEntradas=${setEntradas} erro=${erro}
+          pronto=${pronto} dia=${corridas.length + 1} cheio=${corridas.length >= MAX_DIAS} onAdicionar=${adicionar} onLimpar=${limpar} />
+        <${ListaResultados} corridas=${corridas} numNiveis=${numNiveis} />
+      </div>
+
+      <section className="painel painel-grafico" aria-labelledby="t-niveis">
+        <h2 id="t-niveis">Levey-Jennings e estatísticas por nível</h2>
+        ${mostrarJuntos && html`<div className="bloco-nivel">
+          <h3>Todos os níveis juntos · Z-Score</h3>
+          <${GraficoZScore} corridas=${corridas} parametros=${parametros} aval=${aval} />
+        </div>`}
+        ${mostrarSeparados && parametros.map((p, i) => html`<div key=${i} className="bloco-nivel">
+          <h3>Nível ${i + 1}</h3>
+          <${NivelPainel} idx=${i} parametros=${p} corridas=${corridas} aval=${aval} />
+        </div>`)}
+        <p className="dica leg">As linhas de referência são fixas e vêm do Alvo e SD esperados da configuração. Marcação dos pontos:<i style=${{ background: COR_REJEICAO }}></i>regra de rejeição<i style=${{ background: COR_ALERTA }}></i>alerta</p>
+      </section>
+
+      <${AlertasSistema} aval=${aval} />
+    <//>`}
+
+    <${GuiaWestgard} />
+
+    <footer>QualiLab · módulo Simulador Analítico · conteúdo fictício para fins educacionais.</footer>
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+</script>
+</body>
+</html>
