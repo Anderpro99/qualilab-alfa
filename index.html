@@ -1176,7 +1176,121 @@ const saneCorridas = c => (Array.isArray(c)
   : []);
 const saneRegras = c => Object.fromEntries(Object.keys(CFG_PADRAO).map(r => [r, ["off", "alerta", "rejeicao"].includes(c && c[r]) ? c[r] : CFG_PADRAO[r]]));
 const saneEm = lista => v => (lista.includes(v) ? v : lista[0]);
+/* =====================================================================
+   COMO INTEGRAR (3 mudanças pequenas + 1 bloco colado)
 
+   A) Cole TODO o bloco "FUNDAMENTAÇÃO & HISTÓRIA" (abaixo) no index.html, logo
+      ANTES do comentário que começa com "APLICATIVO — COMO O ESTADO MUDOU...".
+
+   B) Na constante ABAS, acrescente esta linha ao final da lista:
+      ["fundamentos", "Fundamentação & História", "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14zM20 17v4H6.5A2.5 2.5 0 0 1 4 18.5", "Fundamentação & História", "Do controle estatístico industrial ao planejamento da qualidade baseado em risco"]
+
+   C) No App, troque a linha do estado da aba por:
+      const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "fundamentos"]));
+
+   D) No App, logo antes do <footer>, acrescente:
+      ${aba === "fundamentos" && html`<${Fundamentos} onIrPara=${setAba} />`}
+   ===================================================================== */
+
+/* ===================== FUNDAMENTAÇÃO & HISTÓRIA ===================== */
+const ICONES_FUND = {
+  fabrica: "M2 20V9l6 4V9l6 4V5h4v15H2zM7 20v-3M12 20v-3",
+  frasco: "M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3M7.5 15h9",
+  escudo: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM9 12l2 2 4-4",
+  alvo: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 12h.01",
+  livro: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14zM20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"
+};
+function IconeFund({ nome, className }) {
+  return html`<svg className=${className || "h-5 w-5 shrink-0"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d=${ICONES_FUND[nome]} /></svg>`;
+}
+
+/* Cartão de um capítulo da história: ícone, período e título. */
+function CapituloHistoria({ id, ano, icone, titulo, children }) {
+  return html`<article aria-labelledby=${id} className="mb-5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
+    <header className="flex items-center gap-3 border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-white px-5 py-4">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white shadow-sm"><${IconeFund} nome=${icone} className="h-6 w-6" /></div>
+      <div className="min-w-0">
+        <span className="selo neutro">${ano}</span>
+        <h2 id=${id} className="mb-0 mt-1 text-xl leading-snug">${titulo}</h2>
+      </div>
+    </header>
+    <div className="space-y-4 px-5 py-5 text-[15px] leading-relaxed text-slate-700">${children}</div>
+  </article>`;
+}
+
+/* Bloco de destaque (callout) com borda verde. */
+function Destaque({ titulo, icone, children }) {
+  return html`<aside className="rounded-lg border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-950 ring-1 ring-emerald-100">
+    <div className="mb-1 flex items-center gap-2 font-semibold text-emerald-800"><${IconeFund} nome=${icone || "livro"} className="h-4 w-4 shrink-0" />${titulo}</div>
+    <div className="space-y-2">${children}</div>
+  </aside>`;
+}
+
+function Fundamentos({ onIrPara }) {
+  const marcos = [["1924", "Shewhart"], ["1950", "Levey-Jennings"], ["1981", "Westgard"], ["Hoje", "Sigma e risco"]];
+  return html`<div className="mx-auto max-w-4xl">
+    <section className="painel" aria-labelledby="t-fund">
+      <h2 id="t-fund" className="text-2xl">Por que controlamos a qualidade?</h2>
+      <p className="text-[15px] leading-relaxed text-slate-700">Todo resultado de laboratório carrega alguma variação. O Controle da Qualidade (CQ) existe para separar a variação normal do método do erro que exige ação. A história a seguir mostra como essa ideia saiu das fábricas e chegou à bancada do laboratório clínico, e por que as ferramentas do QualiLab (gráficos de Levey-Jennings, regras de Westgard e métrica Sigma) têm a forma que têm.</p>
+      <ol className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Linha do tempo resumida">
+        ${marcos.map(([ano, nome]) => html`<li key=${ano} className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center">
+          <div className="text-lg font-bold text-emerald-800">${ano}</div><div className="text-xs text-slate-600">${nome}</div></li>`)}
+      </ol>
+    </section>
+
+    <${CapituloHistoria} id="h-origem" ano="Década de 1920" icone="fabrica" titulo="A origem industrial: Walter Shewhart na Bell Labs">
+      <p>Nos anos 1920, a Bell Telephone Laboratories buscava fabricar componentes de telefonia com qualidade uniforme. O físico e estatístico <strong>Walter A. Shewhart</strong> percebeu que nenhum processo produz resultados idênticos: toda produção tem uma variação inerente. Em 1924, ele propôs o primeiro <strong>gráfico de controle</strong>, e em 1931 reuniu a teoria no livro <em>Economic Control of Quality of Manufactured Product</em>.</p>
+      <p>A grande contribuição foi distinguir dois tipos de variação, o que define quando agir e quando deixar o processo em paz:</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4"><h3 className="text-emerald-800">Causas aleatórias</h3><p className="mt-1 text-sm">Ruído natural e constante do processo, formado por muitos pequenos fatores. Faz parte do sistema, é previsível em seus limites e não se corrige com ajustes a cada oscilação.</p></div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4"><h3 className="text-emerald-800">Causas atribuíveis (sistemáticas)</h3><p className="mt-1 text-sm">Fatores específicos e identificáveis, como um reagente deteriorado ou uma calibração errada. Deslocam ou alteram o processo e podem ser encontrados e eliminados.</p></div>
+      </div>
+      <p>Shewhart definiu limites de controle em torno da média, tipicamente a ±3 desvios-padrão. Um ponto dentro deles é compatível com a variação natural; um ponto fora sugere uma causa atribuível. É a mesma lógica que você vê nas linhas de ±3 SD do simulador.</p>
+      <${Destaque} titulo="Ideia central" icone="alvo"><p>Reagir a cada oscilação aleatória piora o processo; ignorar uma causa atribuível deixa o erro passar. O gráfico de controle ajuda a decidir entre as duas situações com base em dados.</p><//>
+    <//>
+
+    <${CapituloHistoria} id="h-saude" ano="Anos 1950" icone="frasco" titulo="A chegada à saúde: Levey e Jennings no laboratório clínico">
+      <p>Em 1950, <strong>Stanley Levey</strong> e <strong>E. R. Jennings</strong> publicaram no <em>American Journal of Clinical Pathology</em> a adaptação dos gráficos de Shewhart para o laboratório clínico. Até então, a confiança nos resultados de sangue e outros fluidos dependia sobretudo da experiência do analista; agora era possível acompanhar de forma objetiva, ao longo dos dias, a <strong>precisão</strong> (dispersão dos resultados) e a <strong>exatidão</strong> (proximidade do valor esperado).</p>
+      <p>A rotina passou a incluir um material de controle analisado junto com as amostras e registrado em um gráfico com a média e os limites em desvios-padrão. Esse formato ficou conhecido como <strong>gráfico de Levey-Jennings</strong>, e as versões usadas hoje, com um resultado de controle por ponto, foram se consolidando nos anos seguintes.</p>
+      <${Destaque} titulo="No QualiLab" icone="livro"><p>Cada gráfico do Painel de Controle é um Levey-Jennings: o alvo no centro, linhas de ±1, ±2 e ±3 SD e os resultados do controle ao longo dos dias. Mudanças de nível (viés) e aumento de dispersão aparecem visualmente.</p><//>
+    <//>
+
+    <${CapituloHistoria} id="h-westgard" ano="1981" icone="escudo" titulo="A revolução de James Westgard: as multirregras">
+      <p>Com apenas um limite (por exemplo, ±2 SD), um laboratório que usa dois níveis de controle gera muitos <strong>falsos alarmes</strong>: cerca de 5% dos resultados de um método estável passam de 2 SD só por acaso. Usar apenas ±3 SD reduz os falsos alarmes, mas deixa passar erros menores. Em 1981, <strong>James O. Westgard</strong> e colaboradores publicaram na <em>Clinical Chemistry</em> o procedimento de <strong>multirregras</strong>, combinando critérios com sensibilidades diferentes.</p>
+      <p>A ideia é simples: a regra <span className="whitespace-nowrap">${rotuloHtml("1_2s")}</span> funciona como <em>alerta</em> que manda inspecionar os dados; só então as regras de rejeição são verificadas. Cada uma enxerga melhor um tipo de erro:</p>
+      <ul className="list-disc space-y-1 pl-5">
+        <li><strong>${rotuloHtml("1_3s")}</strong> e <strong>${rotuloHtml("R_4s")}</strong>: sinalizam principalmente erro aleatório.</li>
+        <li><strong>${rotuloHtml("2_2s")}</strong>, <strong>${rotuloHtml("4_1s")}</strong> e <strong>${rotuloHtml("10_x")}</strong>: sinalizam principalmente erro sistemático.</li>
+      </ul>
+      <p>O resultado é uma boa detecção de erros analíticos relevantes com poucas rejeições falsas. Regras complementares, como a tendência <strong>7T</strong> usada no simulador, vieram depois e são adotadas conforme o planejamento de cada laboratório.</p>
+      <${Destaque} titulo="Dica de estudo" icone="alvo"><p>Abra o Guia de Regras de Westgard no Modo Treinamento e compare cada regra com o tipo de erro que ela detecta (aleatório × sistemático).</p><//>
+    <//>
+
+    <${CapituloHistoria} id="h-moderno" ano="Anos 2000 até hoje" icone="alvo" titulo="O controle de qualidade moderno: Sigma e gestão de risco">
+      <p>Com o tempo, ficou claro que um pacote único de regras não serve para todos os métodos. Um método muito estável precisa de menos controle; um método com pouca margem de erro precisa de mais. Surgiu então o <strong>planejamento da qualidade</strong>: o laboratório define primeiro a qualidade necessária, expressa pelo <strong>erro total permitido (TEa)</strong>, e depois escolhe o controle adequado ao desempenho real do método.</p>
+      <p>A ferramenta que une as duas coisas é a <strong>métrica Sigma</strong>, trazida do Six Sigma da indústria:</p>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center font-semibold text-slate-900">Sigma = (TEa − |Viés|) ÷ CV <span className="block text-xs font-normal text-slate-500">(todos em %, na mesma unidade)</span></div>
+      <p>Exemplo: com TEa de 10%, viés de 1% e CV de 2%, o Sigma é (10 − 1) ÷ 2 = 4,5. Quanto maior o Sigma, mais folga o método tem, e menos rigoroso precisa ser o esquema de controle; quanto menor, mais controle é necessário e menor é a tolerância a desvios.</p>
+      <p>Em paralelo, as diretrizes do <strong>CLSI</strong>, como a C24 sobre controle estatístico da qualidade, e a ideia de gestão de risco passaram a orientar o laboratório a montar um <strong>plano de controle</strong> personalizado: quais regras usar, quantos níveis, com que frequência e o que fazer diante de cada sinal. É por isso que, no QualiLab, regras de longo prazo como ${rotuloHtml("4_1s")}, ${rotuloHtml("10_x")} e 7T podem ser configuradas como alerta ou rejeição.</p>
+      <${Destaque} titulo="Em resumo" icone="escudo"><p>Shewhart ensinou a separar variação natural de erro; Levey e Jennings levaram isso ao laboratório; Westgard otimizou a decisão com as multirregras; e o planejamento baseado em Sigma e risco ajusta o controle à qualidade que cada exame realmente exige.</p><//>
+    <//>
+
+    <section className="painel" aria-labelledby="t-ref">
+      <h2 id="t-ref">Para aprofundar</h2>
+      <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+        <li>Shewhart WA. <em>Economic Control of Quality of Manufactured Product</em>, 1931.</li>
+        <li>Levey S, Jennings ER. The use of control charts in the clinical laboratory. <em>Am J Clin Pathol</em>, 1950.</li>
+        <li>Westgard JO, Barry PL, Hunt MR, Groth T. A multi-rule Shewhart chart for quality control in clinical chemistry. <em>Clin Chem</em>, 1981.</li>
+        <li>CLSI. <em>C24: Statistical Quality Control for Quantitative Measurement Procedures</em> (consulte a edição vigente).</li>
+      </ul>
+      <p className="dica">Texto educacional, resumido para fins didáticos. Consulte as fontes originais e os documentos vigentes para uso profissional.</p>
+      <div className="linha mt-4">
+        <button type="button" className="primario" onClick=${() => onIrPara("painel")}>Ver os gráficos no simulador</button>
+        <button type="button" className="secundario" onClick=${() => onIrPara("treino")}>Praticar no Modo Treinamento</button>
+      </div>
+    </section>
+  </div>`;
+}
 /* =====================================================================
    APLICATIVO — COMO O ESTADO MUDOU PARA SUPORTAR VÁRIOS NÍVEIS
    ---------------------------------------------------------------------
