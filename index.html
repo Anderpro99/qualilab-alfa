@@ -91,6 +91,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="exercicios.js"></script>
 <script src="cenarios-plantao.js"></script>
+<script src="cenarios-plantao-extra.js"></script>
 <script>
 const { useState, useRef, useEffect } = React;
 const html = htm.bind(React.createElement);
@@ -1273,6 +1274,11 @@ function Fundamentos({ onIrPara }) {
    Lê os casos de window.cenariosPlantao (arquivo cenarios-plantao.js).
    Estado do jogo (não persiste): { caso, noId, kpis, hist, escolha }
    ===================================================================== */
+function graficoValido(g) {
+  return !!g && Array.isArray(g.niveis) && g.niveis.length >= 1 && g.niveis.length <= 3 && g.niveis.every(n =>
+    n && n.sd > 0 && Number.isFinite(n.alvo) && Array.isArray(n.resultados) && n.resultados.length >= 2
+    && n.resultados.length === g.niveis[0].resultados.length && n.resultados.every(v => Number.isFinite(v)));
+}
 function carregarCenarios() {
   const banco = Array.isArray(window.cenariosPlantao) ? window.cenariosPlantao : [];
   const ids = new Set();
@@ -1281,6 +1287,7 @@ function carregarCenarios() {
     const ok = nos && c.id && !ids.has(c.id) && c.titulo && c.descricao && nos[c.inicio] && Object.values(nos).every(n =>
       n && (n.fim ? ["seguro", "atencao", "falha"].includes(n.resultado)
         : n.titulo && Array.isArray(n.opcoes) && n.opcoes.length >= 2 && n.opcoes.every(o => o && o.texto && nos[o.proximo])));
+    if (ok) Object.entries(nos).forEach(([id, n]) => { if (n.grafico && !graficoValido(n.grafico)) { console.warn("[QualiLab] Gráfico ignorado (formato inválido):", c.id, id); delete n.grafico; } });
     if (!ok) console.warn("[QualiLab] Caso de plantão ignorado (formato inválido ou id repetido):", c && c.id);
     else ids.add(c.id);
     return !!ok;
@@ -1354,6 +1361,10 @@ function LabSim() {
   const no = caso.nos[jogo.noId];
   const limite = caso.limiteAtraso || 90;
   const sair = () => setJogo(null);
+  const g = no.grafico;
+  const z = g ? g.niveis.map(n => n.resultados.map(v => calcularZScore(v, n.alvo, n.sd))) : null;
+  const aval = z ? avaliarRegras(z, { ...CFG_PADRAO, ...(caso.configRegras || {}) }) : null;
+  const detectadas = aval ? aval.violacoes.slice().sort((a, b) => a.dia - b.dia) : [];
 
   const escolher = op => setJogo(j => ({ ...j, kpis: aplicarImpacto(j.kpis, op.impacto), escolha: op,
     hist: [...j.hist, { etapa: no.titulo, hora: no.hora, escolha: op.texto, feedback: op.feedback, impacto: op.impacto }] }));
@@ -1398,6 +1409,10 @@ function LabSim() {
       <h2 id="t-fase">${no.titulo}</h2>
       <p className="text-[15px] leading-relaxed text-slate-700">${no.texto}</p>
       ${no.dados && html`<dl className="linhas-est mt-3">${no.dados.map(([r, v]) => html`<div key=${r} className="esp"><dt>${r}</dt><dd>${v}</dd></div>`)}</dl>`}
+      ${g && html`<div className="mt-4">
+        <${GraficoExercicio} niveis=${z} aval=${aval} revelar=${!!escolha} />
+        <p className="leg dica">${g.niveis.map((n, k) => html`<span key=${k}><i style=${{ background: COR_NIVEIS[k] }}></i>${n.nome}</span>`)} · ${g.analito}${g.unidade ? " (" + g.unidade + ")" : ""}. As marcações das regras aparecem depois da sua decisão.</p>
+      </div>`}
       <h3 className="mt-5 text-base">O que você faz?</h3>
       <div className="opcoes" role="group" aria-label="Opções de decisão">
         ${no.opcoes.map((o, k) => html`<button key=${k} type="button" disabled=${!!escolha && escolha !== o}
@@ -1406,6 +1421,7 @@ function LabSim() {
       ${escolha && html`<div className="feedback certo" role="status">
         <h3>Impacto da decisão</h3>
         <p>${escolha.feedback}</p>
+        ${aval && html`<p><strong>O Motor de Regras detectou neste gráfico:</strong> ${detectadas.length ? detectadas.map(v => rotuloTxt(v.regra) + " (" + v.tipo.toLowerCase() + ", Dia " + (v.dia + 1) + ")").join("; ") : "nenhuma violação"}.</p>`}
         <${ChipsImpacto} impacto=${escolha.impacto} />
         <div className="linha mt-3"><button type="button" className="primario" onClick=${continuar}>Continuar</button></div>
       </div>`}
