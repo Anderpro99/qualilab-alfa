@@ -1,95 +1,132 @@
-/* =====================================================================
-   QualiLab · Banco de Exercícios (estático)
-   ---------------------------------------------------------------------
-   Para ADICIONAR um exercício: copie um objeto abaixo, troque o "id"
-   (único), edite os textos e cole no fim do array. Não é preciso mexer
-   no index.html.
-
-   FORMATO DE CADA EXERCÍCIO
-   {
-     id:             "ex-004"            // obrigatório, único
-     titulo:         "..."               // obrigatório
-     dificuldade:    "Básico" | "Intermediário" | "Avançado"
-     cenario:        "..."               // cenário clínico/laboratorial
-     grafico: {                          // OPCIONAL (sem gráfico = só texto)
-       analito: "Glicose", unidade: "mg/dL",
-       niveis: [                         // 1 a 3 níveis; mesma quantidade de dias em todos
-         { nome: "Nível 1", alvo: 90, sd: 2.5, resultados: [90.5, 89, ...] }
-       ]                                 // resultados em unidade real (o app converte em Z-Score);
-     },                                  // todos precisam ser números, mínimo 2 dias
-     configRegras:   { "10_x": "alerta" }// OPCIONAL: muda a severidade de regras só neste exercício
-                                         // (valores: "off" | "alerta" | "rejeicao"; o padrão é o clássico)
-     pergunta:       "..."
-     alternativas:   [ { id: "a", texto: "...", comentario: "..." (opcional, mostrado se errar) } ]
-     respostaCorreta:"b"                 // id de uma das alternativas
-     justificativa:  "..."               // feedback técnico, mostrado após responder
-   }
-   ===================================================================== */
 window.bancoDeExercicios = [
   {
-    id: "ex-001",
-    titulo: "Creatinina: um ponto isolado muito distante",
-    dificuldade: "Básico",
-    cenario: "Bioquímica, analisador automatizado, creatinina pelo método de Jaffé cinético. Após a calibração semanal, o analista processa os controles internos (Nível 1 normal e Nível 2 patológico) antes da rotina da manhã. Nos seis primeiros dias tudo estava estável. No Dia 7, o Nível 1 deu 1,18 mg/dL, enquanto o Nível 2 ficou dentro do esperado na mesma corrida.",
-    grafico: {
-      analito: "Creatinina", unidade: "mg/dL",
-      niveis: [
-        { nome: "Nível 1", alvo: 1.0, sd: 0.05, resultados: [1.02, 0.97, 1.04, 0.99, 1.01, 0.96, 1.18, 1.00] },
-        { nome: "Nível 2", alvo: 4.0, sd: 0.16, resultados: [4.05, 3.92, 4.08, 3.97, 4.03, 4.10, 4.12, 3.98] }
-      ]
-    },
-    pergunta: "Qual regra de rejeição de Westgard foi violada no Dia 7?",
+    id: 1,
+    titulo: "Pico Isolado no Controle (Regra 1_3s)",
+    cenario: "O controle do Nível 1 do analito Ureia vinha com resultados perfeitamente estáveis nos últimos 15 dias. Hoje, o resultado do Nível 1 disparou para +3.2 DP. O Nível 2 passou com -0.1 DP.",
+    dificuldade: "Iniciante",
     alternativas: [
-      { id: "a", texto: "2₂s: dois resultados consecutivos além de 2 SD, do mesmo lado", comentario: "Só um resultado está fora; o Dia 6 do Nível 1 está dentro dos limites." },
-      { id: "b", texto: "1₃s: um resultado além de ±3 SD" },
-      { id: "c", texto: "R₄s: um resultado acima de +2 SD e outro abaixo de −2 SD na mesma corrida", comentario: "O Nível 2 do Dia 7 está dentro dos limites, então não há pontos em lados opostos." },
-      { id: "d", texto: "4₁s: quatro resultados consecutivos além de 1 SD do mesmo lado", comentario: "Os pontos anteriores oscilam em torno do alvo; não há sequência do mesmo lado." }
+      { id: "A", texto: "Liberar a rotina, pois o Nível 2 passou perfeitamente." },
+      { id: "B", texto: "Rejeitar a corrida. Investigar erro aleatório (ex: bolha na seringa de aspiração, coágulo no controle)." },
+      { id: "C", texto: "Rejeitar a corrida. Investigar erro sistemático (ex: degradação do reagente de Ureia)." }
     ],
-    respostaCorreta: "b",
-    justificativa: "O Nível 1 do Dia 7 (1,18 mg/dL) está a +3,6 SD do alvo, além do limite de +3 SD: violação de 1₃s, regra de rejeição associada principalmente a erro aleatório. O ponto também passa de 2 SD, mas quando o desvio ultrapassa 3 SD a regra aplicável é a 1₃s. Como o Nível 2 estava normal na mesma corrida, vale investigar primeiro o que é específico do Nível 1 (preparo, estabilidade e manuseio do controle, pipetagem), antes de suspeitar de calibração. A corrida deve ser bloqueada até a causa ser esclarecida e os controles repetidos."
+    respostaCorreta: "B",
+    feedback: "A violação da regra 1_3s isolada e abrupta em apenas um nível é característica de Erro Aleatório. Problemas como bolhas ou falha na pipetagem afetam amostras isoladas."
   },
   {
-    id: "ex-002",
-    titulo: "Glicose: troca de lote de reagente sem recalibração",
+    id: 2,
+    titulo: "Desvio Contínuo (Regra 2_2s)",
+    cenario: "Na bancada de Imunologia, o controle de TSH Nível 1 obteve hoje +2.3 DP. Ontem, este mesmo controle havia obtido +2.1 DP.",
+    dificuldade: "Iniciante",
+    alternativas: [
+      { id: "A", texto: "Rejeitar a corrida pela regra 2_2s. A causa provável é um Erro Sistemático (ex: calibração vencendo ou degradação da curva)." },
+      { id: "B", texto: "Considerar como Alerta (Regra 1_2s) e liberar os pacientes, pois não chegou a 3 DP." },
+      { id: "C", texto: "Rejeitar a corrida pela regra 2_2s. A causa provável é um Erro Aleatório (ex: oscilação na rede elétrica hoje)." }
+    ],
+    respostaCorreta: "A",
+    feedback: "Dois controles consecutivos acima de 2 DP do MESMO lado da média configuram violação da 2_2s. Isso indica Erro Sistemático. Liberações devem ser suspensas até verificação de calibração ou reagente."
+  },
+  {
+    id: 3,
+    titulo: "Planejamento de Qualidade (Métrica Sigma Alta)",
+    cenario: "O laboratório validou um novo kit para Colesterol. O Erro Total Permitido (TEa) é de 10%. O CV do laboratório é 1.2% e o Viés é 1.0%.",
     dificuldade: "Intermediário",
-    cenario: "Laboratório de urgência, glicose por hexoquinase. No Dia 5 um novo lote de reagente foi aberto e a calibração não foi refeita. Desde então, os dois níveis de controle aparecem acima de +2 SD, e no Dia 7 continuam elevados. Os resultados de pacientes da manhã ainda não foram liberados.",
-    grafico: {
-      analito: "Glicose", unidade: "mg/dL",
-      niveis: [
-        { nome: "Nível 1", alvo: 90, sd: 2.5, resultados: [90.5, 89.0, 91.0, 89.5, 95.8, 96.3, 95.5] },
-        { nome: "Nível 2", alvo: 250, sd: 6, resultados: [251, 247, 253, 249, 264.5, 263.0, 262.5] }
-      ]
-    },
-    pergunta: "Frente a este gráfico, qual a decisão correta?",
     alternativas: [
-      { id: "a", texto: "Liberar a rotina: nenhum controle passou de 3 SD", comentario: "Estar abaixo de 3 SD não basta: dois resultados seguidos além de 2 SD do mesmo lado já rejeitam a corrida (2₂s)." },
-      { id: "b", texto: "Bloquear a liberação, verificar calibração e lote de reagente (recalibrar com o lote novo), repetir os controles e só então liberar" },
-      { id: "c", texto: "Repetir apenas o Nível 1 e liberar se o resultado cair dentro dos limites", comentario: "Os dois níveis estão deslocados na mesma direção: é um problema do processo, não de um controle isolado." },
-      { id: "d", texto: "Aumentar o SD esperado para que os pontos voltem a ficar dentro dos limites", comentario: "Alargar os limites esconde o erro sem corrigi-lo e compromete a detecção futura." }
+      { id: "A", texto: "O Sigma é 8.3. Deve-se aplicar todas as multiregras (10_x, 4_1s, 2_2s) para garantir a segurança." },
+      { id: "B", texto: "O Sigma é 7.5. O processo é de classe mundial. Pode-se simplificar o CQ usando apenas a regra 1_3s para evitar falsas rejeições." },
+      { id: "C", texto: "O Sigma é 2.0. O processo é instável e exige aumento imediato na frequência de passagem de controle." }
     ],
-    respostaCorreta: "b",
-    justificativa: "Há 2₂s (Níveis 1 e 2 acima de +2 SD em corridas consecutivas) e também 4₁s entre níveis: quatro resultados seguidos além de +1 SD. Os dois níveis se deslocaram juntos e para o mesmo lado, padrão típico de erro sistemático, e o início coincide com a troca de lote sem recalibração, o que torna a calibração e o lote os primeiros suspeitos. A conduta é bloquear a liberação, recalibrar com o lote novo (verificando validade e armazenamento do reagente e do calibrador), repetir os controles e liberar apenas com controles aceitáveis. Também é preciso avaliar o impacto nos resultados já emitidos desde o Dia 5, conforme o POP."
+    respostaCorreta: "B",
+    feedback: "Cálculo: Sigma = (TEa - Viés) / CV -> (10 - 1) / 1.2 = 7.5. Métodos com Sigma > 6 são extremamente robustos. Aplicar muitas regras de Westgard aqui só geraria falsas rejeições."
   },
   {
-    id: "ex-003",
-    titulo: "Potássio: sequência de 10 resultados acima do alvo",
-    dificuldade: "Avançado",
-    cenario: "Potássio por eletrodo íon-seletivo. O laboratório trabalha com método de desempenho elevado (Sigma alto) e, pelo seu planejamento da qualidade, o POP classifica a regra 10ₓ como ALERTA, não como rejeição. Nos últimos 10 dias, todos os resultados do controle ficaram do lado positivo do alvo, sempre dentro de 1 SD. As demais regras não foram violadas.",
-    grafico: {
-      analito: "Potássio", unidade: "mmol/L",
-      niveis: [
-        { nome: "Nível 1", alvo: 4.0, sd: 0.1, resultados: [4.03, 4.06, 4.02, 4.08, 4.05, 4.04, 4.09, 4.03, 4.07, 4.06] }
-      ]
-    },
-    configRegras: { "10_x": "alerta" },
-    pergunta: "Considerando o POP deste laboratório, qual a conduta mais adequada?",
+    id: 4,
+    titulo: "Interpretação do Alerta (Regra 1_2s)",
+    cenario: "No ensaio de Glicose, o controle Nível 2 de hoje obteve resultado de -2.4 DP. Todo o histórico dos últimos 20 dias está dentro de ±1 DP. A regra 1_3s não foi violada.",
+    dificuldade: "Iniciante",
     alternativas: [
-      { id: "a", texto: "Rejeitar a corrida e bloquear toda a rotina até o problema ser resolvido", comentario: "Esta seria a conduta se o POP tratasse 10ₓ como rejeição; aqui a regra é um alerta." },
-      { id: "b", texto: "Liberar com cautela, registrar a ocorrência, investigar a tendência (calibração dos eletrodos, lote de reagente, manutenção) e acompanhar os próximos controles" },
-      { id: "c", texto: "Ignorar: nenhum ponto passou de 2 SD", comentario: "Dez resultados do mesmo lado indicam deslocamento do processo mesmo sem nenhum ponto fora dos limites." },
-      { id: "d", texto: "Descartar o lote do controle e refazer os dez dias de controle", comentario: "Medida desproporcional: não há evidência de que o material de controle seja o problema, e os dias já medidos não se refazem." }
+      { id: "A", texto: "Rejeitar imediatamente a rotina e recalibrar o equipamento." },
+      { id: "B", texto: "Tratar a regra 1_2s como Alerta. Verificar as outras regras de Westgard; se nenhuma outra for violada, a corrida pode ser aceita." },
+      { id: "C", texto: "Repetir o controle até que ele volte para dentro de 1 DP." }
     ],
-    respostaCorreta: "b",
-    justificativa: "Dez resultados consecutivos do mesmo lado da média (10ₓ) sugerem viés persistente, um erro sistemático pequeno que ainda não ultrapassou os limites. Se essa regra é configurada como alerta, ela serve para investigar a tendência sem bloquear a rotina: registrar a ocorrência, verificar calibração e condição dos eletrodos, lote de reagente e manutenções, e acompanhar os próximos controles. A classificação de regras de longo prazo como alerta ou rejeição depende do planejamento da qualidade e do Sigma do método: se o POP tratasse 10ₓ como rejeição, a conduta seria bloquear a liberação, corrigir e repetir os controles. Se o padrão persistir ou surgir outra violação, a investigação deve ser ampliada, conforme o POP."
+    respostaCorreta: "B",
+    feedback: "A regra 1_2s é desenhada para ser um gatilho de investigação, e não um critério automático de rejeição, especialmente quando isolada em um histórico excelente."
+  },
+  {
+    id: 5,
+    titulo: "Discrepância entre Níveis (Regra R_4s)",
+    cenario: "Na mesma corrida analítica de Sódio, o controle Nível 1 apresentou valor correspondente a +2.2 DP, enquanto o controle Nível 2 apresentou -2.1 DP.",
+    dificuldade: "Intermediário",
+    alternativas: [
+      { id: "A", texto: "Erro sistemático no equipamento. A lâmpada ou eletrodo está falhando para ambos." },
+      { id: "B", texto: "A corrida é aceita pois nenhum passou de 3 DP." },
+      { id: "C", texto: "Rejeição pela regra R_4s. Indica Erro Aleatório marcante na corrida atual (a amplitude entre os dois níveis ultrapassa 4 DP)." }
+    ],
+    respostaCorreta: "C",
+    feedback: "A amplitude entre +2.2 e -2.1 é de 4.3 DP. A regra R_4s avalia justamente essa diferença brusca dentro de uma mesma corrida, sendo um forte indicativo de Erro Aleatório."
+  },
+  {
+    id: 6,
+    titulo: "O Efeito de Degradação (Regra 7T - Tendência)",
+    cenario: "Observando o gráfico de Levey-Jennings de uma enzima (AST), nota-se que nos últimos 7 dias os resultados foram: -0.1, +0.2, +0.5, +0.8, +1.1, +1.4, +1.7 DP. Nenhum ultrapassou 2 DP ainda.",
+    dificuldade: "Intermediário",
+    alternativas: [
+      { id: "A", texto: "Tendência sistemática. Sugere degradação progressiva do reagente, envelhecimento de lâmpada ou falha gradual no sistema de refrigeração." },
+      { id: "B", texto: "Deslocamento (Shift). Sugere que o lote do reagente foi trocado há 7 dias." },
+      { id: "C", texto: "Sem problemas, pois a regra 1_2s não foi violada. O laboratório pode seguir a rotina sem intervir." }
+    ],
+    respostaCorreta: "A",
+    feedback: "Sete resultados consecutivos sempre subindo (ou sempre descendo) indicam uma Tendência (Trend). Isso exige manutenção preventiva, mesmo que os pontos ainda não tenham tocado as linhas de rejeição."
+  },
+  {
+    id: 7,
+    titulo: "A Troca de Lote (Regra 10_x)",
+    cenario: "Desde o dia 10 do mês, todos os resultados de Hemoglobina (12 corridas seguidas) estão positivos, flutuando entre +0.4 DP e +1.5 DP. Antes disso, flutuavam ao redor do zero.",
+    dificuldade: "Intermediário",
+    alternativas: [
+      { id: "A", texto: "Erro Aleatório. Houve um pico de variação na energia elétrica." },
+      { id: "B", texto: "Deslocamento Sistemático (Shift). Investigar se houve troca de lote de reagente, calibrador ou manutenção corretiva que mudou o 'zero' do sistema." },
+      { id: "C", texto: "Falsa Rejeição. Pontos em 0.4 DP a 1.5 DP são perfeitamente normais e não devem gerar alerta." }
+    ],
+    respostaCorreta: "B",
+    feedback: "A regra 10_x detecta deslocamentos abruptos da média que se mantêm (Shift). É clássico em mudanças de lote sem o devido ajuste da calibração."
+  },
+  {
+    id: 8,
+    titulo: "Múltiplas Violações Leves (Regra 4_1s)",
+    cenario: "Quatro dias consecutivos de controle do Nível 1 apresentaram os seguintes Z-Scores: -1.2, -1.8, -1.1, -1.5 DP.",
+    dificuldade: "Intermediário",
+    alternativas: [
+      { id: "A", texto: "Violação da regra 4_1s. Indica erro sistemático. Como os 4 estão abaixo de -1 DP, o processo está enviesado para baixo." },
+      { id: "B", texto: "Violação da regra R_4s. Rejeição imediata." },
+      { id: "C", texto: "Aceitar a corrida. Regras que lidam com ±1 DP servem apenas para validação de métodos, não para rotina." }
+    ],
+    respostaCorreta: "A",
+    feedback: "A regra 4_1s (4 resultados seguidos no mesmo lado, além de 1 DP) é um alerta precoce e eficiente de erro sistemático moderado."
+  },
+  {
+    id: 9,
+    titulo: "Desempenho Crítico e Gestão de Risco",
+    cenario: "O analito Potássio possui uma qualidade necessária (TEa) muito estreita. O laboratório calculou o Sigma deste exame e obteve 2.8.",
+    dificuldade: "Avançado",
+    alternativas: [
+      { id: "A", texto: "Aplicar apenas a regra 1_3s e testar controles apenas 1x ao dia, pois o exame já exige muita atenção clínica." },
+      { id: "B", texto: "Aumentar a frequência do controle (ex: a cada 50 amostras) e ativar multiregras completas para maximizar a detecção de erros." },
+      { id: "C", texto: "Adotar limites mais elásticos no equipamento para evitar retenções constantes." }
+    ],
+    respostaCorreta: "B",
+    feedback: "Um processo com Sigma < 3 é considerado 'pobre' ou 'marginal'. Exige monitoramento rigoroso, multiregras estritas e aumento na frequência de CQ para garantir segurança aos pacientes."
+  },
+  {
+    id: 10,
+    titulo: "Problemas na Cultura de Qualidade",
+    cenario: "O equipamento foi calibrado recentemente e passou perfeitamente nos controles. Dois dias depois, a corrida falhou na regra 1_3s. O analista repetiu o controle no mesmo frasco e ele passou (+0.8 DP). Ele liberou a rotina. Qual a avaliação desta conduta?",
+    dificuldade: "Avançado",
+    alternativas: [
+      { id: "A", texto: "Conduta correta. A primeira falha foi provavelmente bolha. A repetição validou o ensaio." },
+      { id: "B", texto: "Conduta correta. Regras estatísticas preveem até 5% de falhas falsas." },
+      { id: "C", texto: "Conduta inadequada. Repetir o controle até 'passar' sem investigar mascara erros intermitentes e destrói o poder estatístico das Regras de Westgard." }
+    ],
+    respostaCorreta: "C",
+    feedback: "A prática de 'testar até passar' é um dos erros mais graves na gestão laboratorial. O erro aleatório inicial não foi resolvido, apenas mascarado na segunda passagem, colocando amostras em risco."
   }
 ];
