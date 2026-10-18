@@ -89,6 +89,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="exercicios.js"></script>
 <script>
 const { useState, useRef, useEffect } = React;
 const html = htm.bind(React.createElement);
@@ -710,29 +711,6 @@ function AlertasSistema({ aval }) {
   </section>`;
 }
 
-/* ---------------- Modo Treinamento / Exercícios ---------------- */
-// Dados mockados em Z-Score: niveis[nivel][dia]. O gabarito de "violações" vem do próprio Motor de Regras.
-const EXERCICIOS = [
-  { pergunta: "Observando o gráfico acima, qual regra foi violada (regra de rejeição)?",
-    contexto: "Controle do Nível 1, em Z-Score, nos últimos 8 dias.",
-    niveis: [[0.4, -0.3, 0.8, -0.5, 2.3, 2.6, 0.9, 0.2]],
-    opcoes: ["1₃s: um resultado além de 3 SD", "R₄s: um ponto acima de +2 SD e outro abaixo de −2 SD", "2₂s: dois resultados consecutivos além de +2 SD", "4₁s: quatro resultados seguidos além de 1 SD"],
-    correta: 2,
-    explicacao: "Os Dias 5 e 6 estão acima de +2 SD, ambos do mesmo lado do alvo: é a regra 2₂s, indicativa de erro sistemático. Cada ponto isolado já dispara o alerta 1₂s, mas é a combinação dos dois que, na configuração clássica, rejeita a corrida. Não há ponto além de 3 SD (1₃s) e não há pontos em lados opostos (R₄s)." },
-  { pergunta: "Frente a este gráfico, qual a decisão correta?",
-    contexto: "Níveis 1 (azul) e 2 (verde) na mesma corrida do Dia 5: um muito acima e outro muito abaixo do alvo.",
-    niveis: [[0.3, -0.4, 0.6, 0.1, 2.5, 0.4], [-0.2, 0.5, -0.3, 0.4, -2.3, -0.1]],
-    opcoes: ["Liberar a rotina: é apenas um alerta 1₂s", "Rejeitar a corrida e investigar fontes de erro aleatório (pipetagem, mistura do controle, bolhas, temperatura)", "Recalibrar o equipamento e liberar a rotina em seguida", "Trocar o lote de reagente imediatamente e manter a rotina"],
-    correta: 1,
-    explicacao: "No Dia 5, um nível passou de +2 SD e o outro de −2 SD: violação R₄s, que indica aumento da imprecisão (erro aleatório). A corrida deve ser rejeitada e as fontes de imprecisão investigadas. Recalibrar ou trocar lote não resolve erro aleatório, e liberar a rotina seria um risco." },
-  { pergunta: "Nenhum ponto passou de 2 SD, mas os resultados só sobem. Qual a decisão mais adequada?",
-    contexto: "Controle do Nível 1, em Z-Score, em 8 dias consecutivos.",
-    niveis: [[0.1, 0.3, 0.6, 0.8, 1.0, 1.3, 1.6, 1.8]],
-    opcoes: ["Ignorar: nenhum ponto ultrapassou os limites de controle", "Descartar o lote do controle e refazer toda a rotina", "Investigar a causa da deriva (reagente, calibrador, lâmpada, temperatura) e agir antes de violar limites de rejeição", "Aumentar o SD esperado para o gráfico voltar a ficar dentro dos limites"],
-    correta: 2,
-    explicacao: "Sete resultados consecutivos subindo formam a regra de tendência 7T: sinal de erro sistemático em desenvolvimento, mesmo com todos os pontos dentro dos limites. O ideal é investigar a causa (deterioração, calibração, manutenção) e corrigir antes de ultrapassar 2 SD ou 3 SD. Alterar o SD esperado apenas esconderia o problema." }
-];
-
 /* Mini-gráfico SVG do exercício. As violações só são destacadas depois que o aluno responde ("revelar"). */
 function GraficoExercicio({ niveis, aval, revelar }) {
   const W = 360, H = 200, n = niveis[0].length;
@@ -754,47 +732,121 @@ function GraficoExercicio({ niveis, aval, revelar }) {
   </svg>`;
 }
 
-function Exercicios() {
-  const [i, setI] = useState(0);
-  const [escolha, setEscolha] = useState(null);
-  const [acertos, setAcertos] = useState(0);
-  const [fim, setFim] = useState(false);
-  const ex = EXERCICIOS[i];
-  const aval = avaliarRegras(ex.niveis, CFG_PADRAO);   // exercícios sempre usam a configuração clássica                      // Motor de Regras aplicado ao gráfico do exercício
-  const respondeu = escolha !== null;
+/* ---------------- Modo Treinamento: lê o banco estático window.bancoDeExercicios (exercicios.js) ---------------- */
+const BADGE_DIFICULDADE = { "Básico": "bg-emerald-100 text-emerald-800", "Intermediário": "bg-sky-100 text-sky-800", "Avançado": "bg-violet-100 text-violet-800" };
+const fmtRes = v => v.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 
-  function responder(k) { if (respondeu) return; setEscolha(k); if (k === ex.correta) setAcertos(a => a + 1); }
-  function proxima() { if (i + 1 < EXERCICIOS.length) { setI(i + 1); setEscolha(null); } else setFim(true); }
-  function refazer() { setI(0); setEscolha(null); setAcertos(0); setFim(false); }
+/* Lê e valida o banco. Um exercício com formato inválido é ignorado (aviso no console) e nunca derruba o app. */
+function carregarExercicios() {
+  const banco = Array.isArray(window.bancoDeExercicios) ? window.bancoDeExercicios : [];
+  const ids = new Set();
+  return banco.filter(ex => {
+    const g = ex && ex.grafico;
+    const grafico = !g || (Array.isArray(g.niveis) && g.niveis.length >= 1 && g.niveis.length <= 3 && g.niveis.every(n =>
+      n && n.sd > 0 && Number.isFinite(n.alvo) && Array.isArray(n.resultados) && n.resultados.length >= 2
+      && n.resultados.length === g.niveis[0].resultados.length && n.resultados.every(v => Number.isFinite(v))));
+    const ok = ex && ex.id && !ids.has(ex.id) && ex.titulo && ex.pergunta && Array.isArray(ex.alternativas)
+      && ex.alternativas.length >= 2 && ex.alternativas.some(a => a.id === ex.respostaCorreta) && grafico;
+    if (!ok) console.warn("[QualiLab] Exercício ignorado (formato inválido ou id repetido):", ex && ex.id);
+    else ids.add(ex.id);
+    return !!ok;
+  });
+}
 
-  if (fim) return html`<section className="painel" aria-labelledby="t-ex">
-    <h2 id="t-ex">Modo Treinamento · Resultado</h2>
-    <p className="banner ok">Você acertou ${acertos} de ${EXERCICIOS.length} perguntas.</p>
-    <p>${acertos === EXERCICIOS.length ? "Excelente! Você identifica as violações e a conduta correta." : "Revise o Guia de Regras de Westgard abaixo e tente novamente."}</p>
-    <button type="button" className="primario" onClick=${refazer}>Refazer exercícios</button>
+/* Um exercício aberto: cenário, gráfico (se houver), alternativas e feedback. */
+function ExercicioAberto({ ex, escolha, onResponder, onRefazer, onVoltar, onProximo }) {
+  const g = ex.grafico;
+  const z = g ? g.niveis.map(n => n.resultados.map(v => calcularZScore(v, n.alvo, n.sd))) : null;
+  const aval = z ? avaliarRegras(z, { ...CFG_PADRAO, ...(ex.configRegras || {}) }) : null;   // Motor de Regras sobre os dados do exercício
+  const respondeu = escolha !== undefined;
+  const acertou = respondeu && escolha === ex.respostaCorreta;
+  const letra = id => String.fromCharCode(65 + ex.alternativas.findIndex(a => a.id === id));
+  const certa = ex.alternativas.find(a => a.id === ex.respostaCorreta);
+  const marcada = ex.alternativas.find(a => a.id === escolha);
+  const detectadas = aval ? aval.violacoes.slice().sort((a, b) => a.dia - b.dia) : [];
+
+  return html`<section className="painel" aria-labelledby="t-ex">
+    <button type="button" className="secundario mb-4" onClick=${onVoltar}>← Voltar à lista</button>
+    <div className="flex flex-wrap items-center gap-2"><span className=${"selo " + (BADGE_DIFICULDADE[ex.dificuldade] || "neutro")}>${ex.dificuldade || "Exercício"}</span></div>
+    <h2 id="t-ex" className="mt-2">${ex.titulo}</h2>
+    ${ex.cenario && html`<p className="text-sm leading-relaxed text-slate-700">${ex.cenario}</p>`}
+    ${g && html`<div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
+      <div>
+        <${GraficoExercicio} niveis=${z} aval=${aval} revelar=${respondeu} />
+        <p className="leg dica">${g.niveis.map((n, k) => html`<span key=${k}><i style=${{ background: COR_NIVEIS[k] }}></i>${n.nome}</span>`)}</p>
+      </div>
+      <div>
+        <p className="dica" style=${{ marginTop: 0 }}>${g.analito}${g.unidade ? " (" + g.unidade + ")" : ""} · ${g.niveis.map(n => n.nome + ": alvo " + fmtRes(n.alvo) + ", SD " + fmtRes(n.sd)).join(" | ")}</p>
+        <div className="lista"><table>
+          <thead><tr><th>Dia</th>${g.niveis.map((n, k) => html`<th key=${k} className="num">${n.nome}</th>`)}</tr></thead>
+          <tbody>${g.niveis[0].resultados.map((_, d) => html`<tr key=${d}><td>Dia ${d + 1}</td>${g.niveis.map((n, k) => html`<td key=${k} className="num">${fmtRes(n.resultados[d])}</td>`)}</tr>`)}</tbody>
+        </table></div>
+      </div>
+    </div>`}
+    <h3 className="mt-5 text-base">${ex.pergunta}</h3>
+    <div className="opcoes" role="group" aria-label="Alternativas">
+      ${ex.alternativas.map((a, k) => html`<button key=${a.id} type="button" disabled=${respondeu && a.id !== escolha && a.id !== ex.respostaCorreta}
+        className=${"opcao" + (respondeu && a.id === ex.respostaCorreta ? " certa" : respondeu && a.id === escolha ? " errada" : "")}
+        onClick=${() => !respondeu && onResponder(a.id)}>${String.fromCharCode(65 + k)}) ${a.texto}</button>`)}
+    </div>
+    ${respondeu && html`<div className=${"feedback " + (acertou ? "certo" : "errado")} role="status">
+      <h3>${acertou ? "Correto!" : "Incorreto."}</h3>
+      ${!acertou && html`<p><strong>Resposta correta:</strong> ${letra(certa.id)}) ${certa.texto}</p>`}
+      ${!acertou && marcada && marcada.comentario && html`<p><strong>Sobre a alternativa escolhida:</strong> ${marcada.comentario}</p>`}
+      <p><strong>Justificativa técnica:</strong> ${ex.justificativa}</p>
+      ${aval && html`<p><strong>O Motor de Regras detectou neste gráfico:</strong> ${detectadas.length ? detectadas.map(v => rotuloTxt(v.regra) + " (" + v.tipo.toLowerCase() + ", Dia " + (v.dia + 1) + ")").join("; ") : "nenhuma violação"}.</p>`}
+      <div className="linha mt-3">
+        ${onProximo && html`<button type="button" className="primario" onClick=${onProximo}>Próximo exercício</button>`}
+        <button type="button" className=${onProximo ? "secundario" : "primario"} onClick=${onVoltar}>Voltar à lista</button>
+        <button type="button" className="secundario" onClick=${onRefazer}>Refazer</button>
+      </div>
+    </div>`}
+  </section>`;
+}
+
+/* Lista os exercícios do banco, deixa escolher um e guarda as respostas (PERSISTÊNCIA: localStorage). */
+function Treinamento() {
+  const exercicios = React.useMemo(carregarExercicios, []);
+  const [respostas, setRespostas] = useEstadoPersistente("respostas", {}, c => (c && typeof c === "object" && !Array.isArray(c) ? c : {}));   // { idExercicio: idAlternativa }
+  const [abertoId, setAbertoId] = useState(null);
+
+  if (exercicios.length === 0) return html`<section className="painel" aria-labelledby="t-ex">
+    <h2 id="t-ex">Modo Treinamento</h2>
+    <p className="erro">Nenhum exercício disponível. Verifique se o arquivo <strong>exercicios.js</strong> está na mesma pasta do index.html e é carregado antes do script principal.</p>
   </section>`;
 
-  const veredito = respondeu && escolha === ex.correta;
-  const detectadas = aval.violacoes.slice().sort((a, b) => a.dia - b.dia);
+  const idx = exercicios.findIndex(e => e.id === abertoId);
+  if (idx >= 0) {
+    const ex = exercicios[idx], proximo = exercicios[idx + 1];
+    return html`<${ExercicioAberto} key=${ex.id} ex=${ex} escolha=${respostas[ex.id]}
+      onResponder=${alt => setRespostas(r => ({ ...r, [ex.id]: alt }))}
+      onRefazer=${() => setRespostas(r => { const c = { ...r }; delete c[ex.id]; return c; })}
+      onVoltar=${() => setAbertoId(null)}
+      onProximo=${proximo ? () => setAbertoId(proximo.id) : null} />`;
+  }
+
+  const feitos = exercicios.filter(e => respostas[e.id] !== undefined);
+  const acertos = feitos.filter(e => respostas[e.id] === e.respostaCorreta).length;
   return html`<section className="painel" aria-labelledby="t-ex">
-    <h2 id="t-ex">Modo Treinamento · Exercícios</h2>
-    <p className="quiz-prog">Pergunta ${i + 1} de ${EXERCICIOS.length} · Acertos: ${acertos}</p>
-    <p className="dica" style=${{ marginTop: 0 }}>${ex.contexto}</p>
-    <${GraficoExercicio} niveis=${ex.niveis} aval=${aval} revelar=${respondeu} />
-    <p className="leg dica">Níveis:${ex.niveis.map((_, k) => html`<span key=${k}><i style=${{ background: COR_NIVEIS[k] }}></i>Nível ${k + 1}</span>`)}</p>
-    <h3 style=${{ margin: "12px 0 0", fontSize: "1.05rem" }}>${ex.pergunta}</h3>
-    <div className="opcoes" role="group" aria-label="Alternativas">
-      ${ex.opcoes.map((o, k) => html`<button key=${k} type="button" disabled=${respondeu && k !== escolha && k !== ex.correta}
-        className=${"opcao" + (respondeu && k === ex.correta ? " certa" : respondeu && k === escolha ? " errada" : "")}
-        onClick=${() => responder(k)}>${String.fromCharCode(65 + k)}) ${o}</button>`)}
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div><h2 id="t-ex" className="mb-0">Exercícios disponíveis</h2>
+        <p className="dica" style=${{ marginTop: 0 }}>${feitos.length} de ${exercicios.length} respondidos · ${acertos} ${acertos === 1 ? "acerto" : "acertos"}</p></div>
+      <button type="button" className="secundario" disabled=${feitos.length === 0} onClick=${() => window.confirm("Zerar o progresso dos exercícios?") && setRespostas({})}>Zerar progresso</button>
     </div>
-    ${respondeu && html`<div className=${"feedback " + (veredito ? "certo" : "errado")} role="status">
-      <h3>${veredito ? "Correto!" : "Incorreto."}</h3>
-      ${!veredito && html`<p><strong>Resposta correta:</strong> ${String.fromCharCode(65 + ex.correta)}) ${ex.opcoes[ex.correta]}</p>`}
-      <p>${ex.explicacao}</p>
-      <p><strong>O Motor de Regras detectou neste gráfico:</strong> ${detectadas.map(v => rotuloTxt(v.regra) + " (Dia " + (v.dia + 1) + ")").join("; ")}.</p>
-      <button type="button" className="primario" style=${{ marginTop: "8px" }} onClick=${proxima}>${i + 1 < EXERCICIOS.length ? "Próxima pergunta" : "Ver resultado"}</button>
-    </div>`}
+    <div className="grid gap-4 md:grid-cols-2">
+      ${exercicios.map(ex => {
+        const r = respostas[ex.id], feito = r !== undefined, certo = r === ex.respostaCorreta;
+        return html`<article key=${ex.id} className="flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className=${"selo " + (BADGE_DIFICULDADE[ex.dificuldade] || "neutro")}>${ex.dificuldade || "Exercício"}</span>
+            ${feito && html`<span className=${"selo " + (certo ? "neutro" : "rejeicao")}>${certo ? "✓ Acertou" : "✕ Errou"}</span>`}
+          </div>
+          <h3 className="mt-2 text-base text-slate-900">${ex.titulo}</h3>
+          ${ex.cenario && html`<p className="mt-1 line-clamp-3 text-sm text-slate-600">${ex.cenario}</p>`}
+          <div className="mt-auto pt-3"><button type="button" className="primario" onClick=${() => setAbertoId(ex.id)}>${feito ? "Rever exercício" : "Resolver"}</button></div>
+        </article>`;
+      })}
+    </div>
   </section>`;
 }
 
@@ -1214,7 +1266,7 @@ function App() {
         </section>
       <//>`}
 
-      ${aba === "treino" && html`<${React.Fragment}><${Exercicios} /><${GuiaWestgard} /><//>`}
+      ${aba === "treino" && html`<${React.Fragment}><${Treinamento} /><${GuiaWestgard} /><//>`}
 
       <footer className="mt-8 border-t border-slate-200 pt-4 text-sm text-slate-500">QualiLab · módulo Simulador Analítico · conteúdo fictício para fins educacionais.</footer>
     </main>
