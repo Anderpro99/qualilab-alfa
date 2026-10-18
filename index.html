@@ -804,10 +804,20 @@ function ExercicioAberto({ ex, escolha, onResponder, onRefazer, onVoltar, onProx
   </section>`;
 }
 
-/* Lista os exercícios do banco, deixa escolher um e guarda as respostas (PERSISTÊNCIA: localStorage). */
+/* =====================================================================
+   MODO TREINAMENTO COM ABAS POR DIFICULDADE
+   Substitui INTEIRO o bloco antigo:
+     de  "/* Lista os exercícios do banco, deixa escolher um..." (function Treinamento)
+     até o fim da função Treinamento (logo antes de "/* Gráfico combinado: todos os níveis...").
+   O componente ExercicioAberto NÃO muda: ele já aceita exercícios sem `grafico`
+   (mostra só o cenário, as alternativas e o feedback).
+   ===================================================================== */
+const NIVEIS_TREINO = ["Básico", "Intermediário", "Avançado"];
+
 function Treinamento() {
-  const exercicios = React.useMemo(carregarExercicios, []);
+  const exercicios = React.useMemo(carregarExercicios, []);   // lê e valida window.bancoDeExercicios
   const [respostas, setRespostas] = useEstadoPersistente("respostas", {}, c => (c && typeof c === "object" && !Array.isArray(c) ? c : {}));   // { idExercicio: idAlternativa }
+  const [abaAtiva, setAbaAtiva] = useEstadoPersistente("abaTreino", NIVEIS_TREINO[0], saneEm(NIVEIS_TREINO));   // lembra a aba ao recarregar
   const [abertoId, setAbertoId] = useState(null);
 
   if (exercicios.length === 0) return html`<section className="painel" aria-labelledby="t-ex">
@@ -815,37 +825,79 @@ function Treinamento() {
     <p className="erro">Nenhum exercício disponível. Verifique se o arquivo <strong>exercicios.js</strong> está na mesma pasta do index.html e é carregado antes do script principal.</p>
   </section>`;
 
-  const idx = exercicios.findIndex(e => e.id === abertoId);
-  if (idx >= 0) {
-    const ex = exercicios[idx], proximo = exercicios[idx + 1];
-    return html`<${ExercicioAberto} key=${ex.id} ex=${ex} escolha=${respostas[ex.id]}
-      onResponder=${alt => setRespostas(r => ({ ...r, [ex.id]: alt }))}
-      onRefazer=${() => setRespostas(r => { const c = { ...r }; delete c[ex.id]; return c; })}
+  // Contadores dinâmicos: filtram o banco por dificuldade (ex.: "Básico (10)").
+  const porNivel = Object.fromEntries(NIVEIS_TREINO.map(n => [n, exercicios.filter(e => e.dificuldade === n)]));
+
+  // ---- Exercício aberto: "Próximo" avança dentro da MESMA dificuldade ----
+  const aberto = exercicios.find(e => e.id === abertoId);
+  if (aberto) {
+    const grupo = porNivel[aberto.dificuldade] || exercicios;
+    const proximo = grupo[grupo.findIndex(e => e.id === aberto.id) + 1];
+    return html`<${ExercicioAberto} key=${aberto.id} ex=${aberto} escolha=${respostas[aberto.id]}
+      onResponder=${alt => setRespostas(r => ({ ...r, [aberto.id]: alt }))}
+      onRefazer=${() => setRespostas(r => { const c = { ...r }; delete c[aberto.id]; return c; })}
       onVoltar=${() => setAbertoId(null)}
       onProximo=${proximo ? () => setAbertoId(proximo.id) : null} />`;
   }
 
-  const feitos = exercicios.filter(e => respostas[e.id] !== undefined);
+  // ---- Lista da aba ativa ----
+  const lista = porNivel[abaAtiva];
+  const feitos = lista.filter(e => respostas[e.id] !== undefined);
   const acertos = feitos.filter(e => respostas[e.id] === e.respostaCorreta).length;
+
+  // Setas ← → trocam de aba (padrão de acessibilidade para tablist).
+  const teclas = (e, i) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const novo = NIVEIS_TREINO[(i + (e.key === "ArrowRight" ? 1 : NIVEIS_TREINO.length - 1)) % NIVEIS_TREINO.length];
+    setAbaAtiva(novo);
+    const el = document.getElementById("aba-" + novo);
+    if (el) el.focus();
+  };
+
+  const zerarAba = () => {
+    if (!window.confirm("Zerar o progresso dos exercícios do nível " + abaAtiva + "?")) return;
+    setRespostas(r => { const c = { ...r }; lista.forEach(e => delete c[e.id]); return c; });
+  };
+
   return html`<section className="painel" aria-labelledby="t-ex">
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div><h2 id="t-ex" className="mb-0">Exercícios disponíveis</h2>
-        <p className="dica" style=${{ marginTop: 0 }}>${feitos.length} de ${exercicios.length} respondidos · ${acertos} ${acertos === 1 ? "acerto" : "acertos"}</p></div>
-      <button type="button" className="secundario" disabled=${feitos.length === 0} onClick=${() => window.confirm("Zerar o progresso dos exercícios?") && setRespostas({})}>Zerar progresso</button>
-    </div>
-    <div className="grid gap-4 md:grid-cols-2">
-      ${exercicios.map(ex => {
-        const r = respostas[ex.id], feito = r !== undefined, certo = r === ex.respostaCorreta;
-        return html`<article key=${ex.id} className="flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className=${"selo " + (BADGE_DIFICULDADE[ex.dificuldade] || "neutro")}>${ex.dificuldade || "Exercício"}</span>
-            ${feito && html`<span className=${"selo " + (certo ? "neutro" : "rejeicao")}>${certo ? "✓ Acertou" : "✕ Errou"}</span>`}
-          </div>
-          <h3 className="mt-2 text-base text-slate-900">${ex.titulo}</h3>
-          ${ex.cenario && html`<p className="mt-1 line-clamp-3 text-sm text-slate-600">${ex.cenario}</p>`}
-          <div className="mt-auto pt-3"><button type="button" className="primario" onClick=${() => setAbertoId(ex.id)}>${feito ? "Rever exercício" : "Resolver"}</button></div>
-        </article>`;
+    <h2 id="t-ex">Exercícios</h2>
+
+    <div role="tablist" aria-label="Dificuldade dos exercícios" className="mb-4 flex gap-1 overflow-x-auto border-b border-slate-200">
+      ${NIVEIS_TREINO.map((n, i) => {
+        const ativa = n === abaAtiva;
+        return html`<button key=${n} id=${"aba-" + n} type="button" role="tab" aria-selected=${ativa} aria-controls="painel-treino"
+          tabIndex=${ativa ? 0 : -1} onClick=${() => setAbaAtiva(n)} onKeyDown=${e => teclas(e, i)}
+          className=${"-mb-px whitespace-nowrap rounded-none rounded-t-lg border-b-4 px-4 " + (ativa
+            ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+            : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800")}>
+          ${n} (${porNivel[n].length})</button>`;
       })}
+    </div>
+
+    <div id="painel-treino" role="tabpanel" aria-labelledby=${"aba-" + abaAtiva}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="dica" style=${{ marginTop: 0 }}>${feitos.length} de ${lista.length} respondidos · ${acertos} ${acertos === 1 ? "acerto" : "acertos"}</p>
+        <button type="button" className="secundario" disabled=${feitos.length === 0} onClick=${zerarAba}>Zerar progresso desta aba</button>
+      </div>
+
+      ${lista.length === 0
+        ? html`<p className="vazio">Nenhum exercício de nível ${abaAtiva} no momento.</p>`
+        : html`<div className="grid gap-4 md:grid-cols-2">
+          ${lista.map(ex => {
+            const r = respostas[ex.id], feito = r !== undefined, certo = r === ex.respostaCorreta;
+            return html`<article key=${ex.id} className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-md">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className=${"selo " + (BADGE_DIFICULDADE[ex.dificuldade] || "neutro")}>${ex.dificuldade}</span>
+                <span className="selo bg-slate-100 text-slate-600">${ex.grafico ? "Com gráfico" : "Teórico"}</span>
+                ${feito && html`<span className=${"selo " + (certo ? "neutro" : "rejeicao")}>${certo ? "✓ Acertou" : "✕ Errou"}</span>`}
+              </div>
+              <h3 className="mt-2 text-base text-slate-900">${ex.titulo}</h3>
+              ${ex.cenario && html`<p className="mt-1 line-clamp-3 text-sm text-slate-600">${ex.cenario}</p>`}
+              <div className="mt-auto pt-3"><button type="button" className="primario" onClick=${() => setAbertoId(ex.id)}>${feito ? "Rever exercício" : "Resolver"}</button></div>
+            </article>`;
+          })}
+        </div>`}
     </div>
   </section>`;
 }
