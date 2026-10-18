@@ -4,111 +4,83 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QualiLab – Simulador Analítico</title>
-<style>
-:root{--bg:#f5f6f4;--surface:#fff;--text:#1d2420;--muted:#5b655f;--line:#d9dfdb;--green:#14422f;--green-soft:#e4efe9;--bad:#8c2a2a;--bad-bg:#f8e8e8}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.wrap{max-width:960px;margin:0 auto;padding:24px 18px 48px}
-header{padding:12px 0 18px;border-bottom:1px solid var(--line);margin-bottom:22px}
-h1{margin:0;font-size:1.8rem;color:var(--green)}
-.sub{margin:2px 0 0;color:var(--muted)}
-.aviso{background:var(--green-soft);border-radius:8px;padding:12px 16px;font-size:.93rem;margin-bottom:22px}
-.grade{display:grid;gap:18px;grid-template-columns:1fr}
-@media (min-width:800px){.grade{grid-template-columns:1fr 1fr;align-items:start}}
-.painel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px}
-.painel+.painel{margin-top:18px}
-h2{font-size:1.1rem;margin:0 0 12px}
-label{display:block;font-weight:600;margin-bottom:6px}
-.linha{display:flex;gap:10px;flex-wrap:wrap}
-input[type=text]{flex:1 1 140px;min-width:0;font:inherit;padding:10px 12px;min-height:44px;border:1px solid #8a948e;border-radius:8px;background:#fff;color:var(--text)}
-button{font:inherit;font-weight:600;border-radius:8px;padding:10px 18px;min-height:44px;cursor:pointer;border:1px solid var(--green)}
-.primario{background:var(--green);color:#fff}
-.secundario{background:transparent;color:var(--green)}
-button:disabled{opacity:.45;cursor:not-allowed}
-input:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offset:2px}
-.erro{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-size:.93rem}
-.dica{color:var(--muted);font-size:.88rem;margin:8px 0 0}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
-th{color:var(--muted);font-weight:600;font-size:.9rem}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.lista{max-height:340px;overflow-y:auto}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.stat{border:1px solid var(--line);border-radius:8px;padding:12px 14px}
-.stat dt{color:var(--muted);font-size:.88rem}
-.stat dd{margin:2px 0 0;font-size:1.6rem;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums}
-.vazio{color:var(--muted)}
-.painel-grafico{margin-top:18px}
-.abas button[aria-checked="true"]{background:var(--green);color:#fff}
-.bloco-nivel{margin-top:22px}
-.bloco-nivel:first-of-type{margin-top:0}
-.bloco-nivel h3{margin:0 0 10px;font-size:1.05rem;color:var(--green)}
-.guia-intro h3,.titulo-tabela{margin:18px 0 4px;font-size:1rem}
-.guia-intro p{margin:0}
-.resumo{font-size:.93rem}
-.mini{width:100%;max-width:340px;display:block;margin:10px 14px 0}
-.mini text{fill:#5b655f;font-size:10px}
-.mini-legenda{margin:2px 14px 0;color:var(--muted);font-size:.85rem}
-.regra{border:1px solid var(--line);border-radius:8px;margin-top:10px;background:#fff}
-.regra summary{cursor:pointer;padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:44px}
-.regra summary:focus-visible{outline:3px solid var(--green);outline-offset:2px}
-.regra-nome{font-weight:700;color:var(--green);font-size:1.1rem;min-width:56px}
-.selo{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.82rem;font-weight:600}
-.selo.alerta{background:#fbf1e3;color:#8a4b0f}
-.selo.rejeicao{background:#f8e8e8;color:#8c2a2a}
-.selo.neutro{background:var(--green-soft);color:var(--green)}
-.regra dl{margin:0;padding:0 14px 14px}
-.regra dt{font-weight:600;margin-top:10px;color:var(--muted);font-size:.9rem}
-.regra dd{margin:2px 0 0}
-.painel+.grade{margin-top:18px}
-.grade>.painel+.painel{margin-top:0}
-.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.campos input,.campos select{width:100%}
-select{font:inherit;padding:10px 12px;min-height:44px;border:1px solid #8a948e;border-radius:8px;background:#fff;color:var(--text)}
-select:focus-visible{outline:3px solid var(--green);outline-offset:2px}
-fieldset.nivel-cfg{border:1px solid var(--line);border-radius:8px;margin:16px 0 0;padding:12px 14px}
-fieldset.nivel-cfg legend{font-weight:600;color:var(--green);padding:0 6px}
-.nivel-cfg .dica,.nivel-cfg .erro{margin:10px 0 0}
-.abas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
-.abas button{flex:1 1 auto;border-radius:8px 8px 0 0;background:transparent;color:var(--green);border-bottom:none}
-.abas button[aria-selected="true"]{background:var(--green);color:#fff}
-.nivel-grid{display:grid;gap:18px;grid-template-columns:1fr}
-@media (min-width:900px){.nivel-grid{grid-template-columns:2fr 1fr;align-items:start}}
-.linhas-est{margin:0;border:1px solid var(--line);border-radius:8px;padding:4px 14px}
-.linhas-est div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-.linhas-est div:last-child{border-bottom:0}
-.linhas-est dt{color:var(--muted)}
-.linhas-est dd{margin:0;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums}
-.linhas-est .esp dd{color:var(--text);font-weight:400}
-.caixa-grafico{position:relative;height:380px}
-@media (max-width:480px){.caixa-grafico{height:320px}}
-.banner{padding:12px 16px;border-radius:8px;font-weight:600;margin-bottom:12px}
-.banner.ok{background:var(--green-soft);color:var(--green)}
-.banner.alerta{background:#fbf1e3;color:#8a4b0f}
-.banner.rej{background:var(--bad-bg);color:var(--bad)}
-.lista-alertas{max-height:560px;overflow-y:auto}
-.regra ul{margin:4px 0 0;padding-left:20px}
-.regra li{margin:4px 0}
-.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 12px;vertical-align:middle}
-.quiz-prog{color:var(--muted);font-size:.9rem;margin:0 0 6px}
-.mini.grande{max-width:520px;margin:10px 0}
-.opcoes{display:grid;gap:8px;margin-top:12px}
-.opcao{text-align:left;background:#fff;color:var(--text);border:1px solid #8a948e;font-weight:500}
-.opcao.certa{background:var(--green-soft);border-color:var(--green);color:var(--green);font-weight:600}
-.opcao.errada{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
-.feedback{margin-top:14px;padding:12px 16px;border-radius:8px}
-.feedback.certo{background:var(--green-soft)}
-.feedback.errado{background:var(--bad-bg)}
-.feedback h3{margin:0 0 4px;font-size:1rem}
-.feedback p{margin:4px 0}
-.regras-cfg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
-.cfg-regra{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
-.cfg-regra label{margin:0}
-.cfg-regra select{min-width:150px}
-.regra.sev-rej{border-left:4px solid var(--bad)}
-.regra.sev-alerta{border-left:4px solid #c77700}
-footer{margin-top:28px;color:var(--muted);font-size:.88rem;border-top:1px solid var(--line);padding-top:14px}
-@media (max-width:480px){button{flex:1 1 100%}}
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Camada de componentes do Tailwind: apenas utilitários via @apply (sem CSS manual). -->
+<style type="text/tailwindcss">
+@layer base {
+  body{@apply bg-slate-100 text-slate-800 antialiased}
+  h2{@apply mb-3 text-lg font-bold text-slate-900}
+  h3{@apply font-semibold}
+  label{@apply mb-1 block text-sm font-semibold text-slate-700}
+  /* Microinteração: inputs e selects ganham borda esmeralda + anel (ring) ao receber foco */
+  input[type=text],select{@apply min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 py-2 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40}
+  button{@apply min-h-[44px] rounded-lg px-4 py-2 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40}
+  table{@apply w-full border-collapse text-sm}
+  th{@apply border-b border-slate-200 p-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500}
+  td{@apply border-b border-slate-100 p-2}
+}
+@layer components {
+  .painel{@apply mb-5 rounded-xl border border-slate-200 bg-white p-5 shadow-md}
+  .grade{@apply mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start}
+  .grade>.painel{@apply mb-0}
+  .campos{@apply grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]}
+  .linha{@apply flex flex-wrap gap-2}
+  .linha button{@apply max-sm:flex-1}
+  .primario{@apply border border-emerald-700 bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 active:scale-[.98]}
+  .secundario{@apply border border-emerald-700 bg-white text-emerald-800 hover:bg-emerald-50 active:scale-[.98]}
+  .erro{@apply mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200}
+  .dica{@apply mt-2 text-sm text-slate-500}
+  .vazio{@apply text-slate-500}
+  .lista{@apply max-h-[340px] overflow-y-auto}
+  td.num,th.num{@apply text-right tabular-nums}
+  .bloco-nivel{@apply mt-6 [&:first-of-type]:mt-0}
+  .bloco-nivel h3{@apply mb-2 text-emerald-800}
+  .caixa-grafico{@apply relative h-80 sm:h-[380px]}
+  .nivel-grid{@apply grid gap-5 xl:grid-cols-[2fr_1fr] xl:items-start}
+  .linhas-est{@apply m-0 rounded-lg border border-slate-200 bg-slate-50 px-4 py-1}
+  .linhas-est div{@apply flex justify-between gap-2 border-b border-slate-200 py-2 last:border-0}
+  .linhas-est dt{@apply text-slate-500}
+  .linhas-est dd{@apply m-0 font-semibold tabular-nums text-emerald-800}
+  .linhas-est .esp dd{@apply font-normal text-slate-800}
+  fieldset.nivel-cfg{@apply mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4}
+  fieldset.nivel-cfg legend{@apply px-2 font-semibold text-emerald-800}
+  .guia-intro h3,.titulo-tabela{@apply mb-1 mt-5 text-base font-semibold text-slate-900}
+  .guia-intro p{@apply text-sm leading-relaxed text-slate-700}
+  .resumo{@apply text-sm}
+  .mini{@apply mx-3 mt-2 block w-full max-w-[340px]}
+  .mini text{fill:#64748b;font-size:10px}
+  .mini.grande{@apply mx-0 my-2 max-w-[520px]}
+  .mini-legenda{@apply mx-3 text-sm text-slate-500}
+  .regra{@apply mt-2 rounded-lg border border-slate-200 bg-white}
+  .regra summary{@apply flex min-h-[44px] cursor-pointer flex-wrap items-center gap-2 rounded-lg px-4 py-2 hover:bg-slate-50}
+  .regra-nome{@apply min-w-[56px] text-lg font-bold text-emerald-800}
+  .regra dl{@apply m-0 px-4 pb-4}
+  .regra dt{@apply mt-3 text-sm font-semibold text-slate-500}
+  .regra dd{@apply ml-0 mt-0.5 text-sm text-slate-700}
+  .selo{@apply inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold}
+  .selo.alerta{@apply bg-amber-100 text-amber-800}
+  .selo.rejeicao{@apply bg-red-100 text-red-800}
+  .selo.neutro{@apply bg-emerald-100 text-emerald-800}
+  .banner{@apply mb-3 rounded-lg px-4 py-3 font-semibold ring-1}
+  .banner.ok{@apply bg-emerald-50 text-emerald-800 ring-emerald-200}
+  .banner.alerta{@apply bg-amber-50 text-amber-800 ring-amber-200}
+  .banner.rej{@apply bg-red-50 text-red-800 ring-red-200}
+  .leg i{@apply mx-1 ml-3 inline-block h-2.5 w-2.5 rounded-full align-middle}
+  .quiz-prog{@apply mb-1 text-sm text-slate-500}
+  .opcoes{@apply mt-3 grid gap-2}
+  .opcao{@apply border border-slate-300 bg-white text-left font-medium text-slate-800 hover:border-emerald-500 hover:bg-emerald-50}
+  .opcao.certa{@apply border-emerald-600 bg-emerald-50 font-semibold text-emerald-800}
+  .opcao.errada{@apply border-red-600 bg-red-50 text-red-800}
+  .feedback{@apply mt-4 rounded-lg px-4 py-3 text-sm}
+  .feedback.certo{@apply bg-emerald-50 ring-1 ring-emerald-200}
+  .feedback.errado{@apply bg-red-50 ring-1 ring-red-200}
+  .feedback h3{@apply mb-1 text-base}
+  .feedback p{@apply my-1}
+  .regras-cfg{@apply grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(270px,1fr))]}
+  .cfg-regra{@apply flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2}
+  .cfg-regra label{@apply mb-0}
+  .cfg-regra select{@apply w-auto min-w-[150px]}
+}
 </style>
 </head>
 <body>
@@ -699,30 +671,40 @@ function AlertasSistema({ aval }) {
   const nivelTxt = v => (v.niveis.length > 1 ? "Níveis " + v.niveis.map(n => n + 1).join(" e ") : "Nível " + (v.niveis[0] + 1));
   const ponto = p => "N" + (p.n + 1) + "·Dia " + (p.d + 1);
   const pontos = v => (v.pts.length > 6 ? ponto(v.pts[0]) + " … " + ponto(v.pts[v.pts.length - 1]) : v.pts.map(ponto).join(", "));
+  const lista = (itens) => html`<ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-slate-700">${itens.map((c, i) => html`<li key=${i}>${c}</li>`)}</ul>`;
 
-  return html`<section className="painel painel-grafico" aria-labelledby="t-alertas">
+  return html`<section className="painel" aria-labelledby="t-alertas">
     <h2 id="t-alertas">Alertas do Sistema</h2>
     <div aria-live="polite">
       ${banner ? html`<div className=${"banner " + banner[0]}>${banner[1]}</div>`
                : html`<p className="vazio">Insira resultados para o sistema avaliar as regras de Westgard.</p>`}
       ${ultimoDia >= 0 && violacoes.length === 0 && html`<p className="vazio">Nenhuma violação detectada em todo o histórico.</p>`}
     </div>
-    <div className="lista-alertas">
-      ${violacoes.map(v => html`<details key=${v.regra + v.dia} className=${"regra " + (v.tipo === "Alerta" ? "sev-alerta" : "sev-rej")} open=${v.dia === ultimoDia}>
-        <summary>
-          <span className="regra-nome">${rotuloHtml(v.regra)}</span>
-          <span className=${"selo " + (v.tipo === "Alerta" ? "alerta" : "rejeicao")}>${v.tipo}</span>
-          <span className="selo neutro">Erro ${v.erro.toLowerCase()}</span>
-          <span>Dia ${v.dia + 1} · ${nivelTxt(v)}</span>
-        </summary>
-        <dl>
-          <dt>Como foi detectada</dt><dd>${v.escopos.join(" e ")}. Pontos: ${pontos(v)}.</dd>
-          <dt>${CONDUTA_SEVERIDADE[v.tipo].titulo}</dt>
-          <dd><ul>${CONDUTA_SEVERIDADE[v.tipo].itens.map((c, i) => html`<li key=${i}>${c}</li>`)}</ul></dd>
-          <dt>Onde investigar (erro ${v.erro.toLowerCase()})</dt>
-          <dd><ul>${CAUSAS[v.regra].map((c, i) => html`<li key=${i}>${c}</li>`)}</ul></dd>
-        </dl>
-      </details>`)}
+    <div className="max-h-[640px] space-y-3 overflow-y-auto pr-1">
+      ${violacoes.map(v => {
+        const rej = v.tipo === "Rejeição", c = CONDUTA_SEVERIDADE[v.tipo];
+        /* CARD DE NOTIFICAÇÃO: vermelho = rejeição, âmbar = alerta */
+        return html`<article key=${v.regra + v.dia} className=${"flex gap-3 rounded-xl border-l-4 p-4 shadow-md " + (rej ? "border-red-500 bg-red-50" : "border-amber-400 bg-amber-50")}>
+          <div aria-hidden="true" className=${"flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-white " + (rej ? "bg-red-600" : "bg-amber-500")}>${rej ? "✕" : "!"}</div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className=${"text-lg font-bold " + (rej ? "text-red-800" : "text-amber-800")}>${rotuloHtml(v.regra)}</span>
+              <span className=${"selo " + (rej ? "rejeicao" : "alerta")}>${v.tipo}</span>
+              <span className="selo neutro">Erro ${v.erro.toLowerCase()}</span>
+              <span className="ml-auto text-sm font-medium text-slate-600">Dia ${v.dia + 1} · ${nivelTxt(v)}</span>
+            </div>
+            <p className=${"mt-1 text-sm font-semibold " + (rej ? "text-red-800" : "text-amber-800")}>${rej ? "Bloquear a liberação, investigar a causa, corrigir e repetir os controles." : "Investigar a tendência e registrar a ocorrência; liberação com cautela, conforme o POP."}</p>
+            <p className="mt-1 text-xs text-slate-500">${v.escopos.join(" e ")}. Pontos: ${pontos(v)}.</p>
+            <details className="mt-2" open=${v.dia === ultimoDia}>
+              <summary className="cursor-pointer text-sm font-semibold text-slate-700 hover:text-slate-900">Conduta e onde investigar</summary>
+              <div className="mt-2 grid gap-4 md:grid-cols-2">
+                <div><h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">${c.titulo}</h4>${lista(c.itens)}</div>
+                <div><h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Onde investigar (erro ${v.erro.toLowerCase()})</h4>${lista(CAUSAS[v.regra])}</div>
+              </div>
+            </details>
+          </div>
+        </article>`;
+      })}
     </div>
     <p className="dica">Simulação educacional: as condutas são sugestões gerais; a decisão real segue os procedimentos do laboratório.</p>
   </section>`;
@@ -972,7 +954,7 @@ function GuiaWestgard() {
     ["Falso alarme", "Alerta ou rejeição sem que exista erro real, causado apenas pelo acaso."],
     ["Sigma do método", "Medida do desempenho analítico: quanto maior, mais folga o método tem diante do erro permitido. Ajuda a planejar quais regras usar e como classificá-las (alerta ou rejeição)."]
   ];
-  return html`<section className="painel painel-grafico" aria-labelledby="t-wg">
+  return html`<section className="painel" aria-labelledby="t-wg">
     <h2 id="t-wg">Guia de Regras de Westgard</h2>
     <p className="dica" style=${{ marginTop: 0 }}>
       Conteúdo educacional. O simulador aplica estas regras automaticamente aos seus resultados (veja o painel Alertas do Sistema), e você pode definir a classificação de cada uma (desativada, alerta ou rejeição) no painel de configuração das regras. Na prática, a escolha das regras, a classificação e as condutas reais dependem dos procedimentos e do desempenho analítico de cada laboratório.
@@ -1060,6 +1042,38 @@ function NivelPainel({ idx, parametros, corridas, aval }) {
 }
 
 /* =====================================================================
+   ███ PERSISTÊNCIA (localStorage) ███
+   Hook useState que lê o valor salvo ao iniciar e grava a cada mudança.
+   Assim, ao atualizar a página (F5), configuração dos níveis, regras e
+   resultados digitados continuam lá. Os dados lidos passam por "sanear",
+   para que um valor antigo/corrompido nunca derrube o app.
+   ===================================================================== */
+const PREFIXO_LS = "qualilab:v1:";
+function useEstadoPersistente(chave, inicial, sanear) {
+  const [valor, setValor] = useState(() => {
+    try {                                                    // LEITURA ao abrir a página
+      const salvo = localStorage.getItem(PREFIXO_LS + chave);
+      return salvo === null ? inicial : sanear(JSON.parse(salvo));
+    } catch (e) { return inicial; }                          // localStorage bloqueado ou JSON inválido
+  });
+  useEffect(() => {
+    try { localStorage.setItem(PREFIXO_LS + chave, JSON.stringify(valor)); }   // GRAVAÇÃO a cada mudança
+    catch (e) { /* modo privado ou cota cheia: o app segue funcionando sem salvar */ }
+  }, [chave, valor]);
+  return [valor, setValor];
+}
+// Sanitizadores: aceitam só o formato esperado; o resto volta ao padrão.
+const saneConfig = c => (c && [1, 2, 3].includes(c.numNiveis) && Array.isArray(c.niveis) && c.niveis.length === 3)
+  ? { numNiveis: c.numNiveis, niveis: c.niveis.map(n => ({ modo: n && n.modo === "range" ? "range" : "sd",
+      alvo: String((n && n.alvo) ?? ""), sd: String((n && n.sd) ?? ""), min: String((n && n.min) ?? ""), max: String((n && n.max) ?? ""), k: n && n.k === "3" ? "3" : "2" })) }
+  : CONFIG_INICIAL;
+const saneCorridas = c => (Array.isArray(c)
+  ? c.slice(0, MAX_DIAS).filter(r => Array.isArray(r) && r.length === 3).map(r => r.map(v => (typeof v === "number" && Number.isFinite(v) ? v : null)))
+  : []);
+const saneRegras = c => Object.fromEntries(Object.keys(CFG_PADRAO).map(r => [r, ["off", "alerta", "rejeicao"].includes(c && c[r]) ? c[r] : CFG_PADRAO[r]]));
+const saneEm = lista => v => (lista.includes(v) ? v : lista[0]);
+
+/* =====================================================================
    APLICATIVO — COMO O ESTADO MUDOU PARA SUPORTAR VÁRIOS NÍVEIS
    ---------------------------------------------------------------------
    ANTES:  valores   = [100, 102, 98, ...]               (uma lista só)
@@ -1076,21 +1090,37 @@ function NivelPainel({ idx, parametros, corridas, aval }) {
    Reduzir o nº de níveis NÃO apaga dados: os valores continuam em corridas e
    voltam a aparecer se o nível for reativado (dias antigos ficam com "—").
    ===================================================================== */
+const ABAS = [
+  ["painel", "Painel de Controle (Gráficos)", "M3 3v18h18M7 15l4-4 3 3 5-6", "Painel de Controle", "Resultados, gráficos de Levey-Jennings e alertas das regras de Westgard"],
+  ["config", "Configurações de Regras e Níveis", "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6", "Configurações de Regras e Níveis", "Alvo e SD de cada nível e severidade de cada regra (desativada, alerta ou rejeição)"],
+  ["treino", "Modo Treinamento", "M12 3 2 8l10 5 10-5-10-5zM6 10.5V16c0 1 2.7 3 6 3s6-2 6-3v-5.5", "Modo Treinamento", "Exercícios interativos e guia das regras de Westgard"]
+];
+function Icone({ d }) {
+  return html`<svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d=${d} /></svg>`;
+}
+
 function App() {
-  const [config, setConfig] = useState(CONFIG_INICIAL);
-  const [corridas, setCorridas] = useState([]);
+  // PERSISTÊNCIA: estes estados são salvos no localStorage (ver useEstadoPersistente)
+  const [config, setConfig] = useEstadoPersistente("config", CONFIG_INICIAL, saneConfig);          // níveis, alvo e SD
+  const [corridas, setCorridas] = useEstadoPersistente("corridas", [], saneCorridas);               // resultados digitados
+  const [regrasCfg, setRegrasCfg] = useEstadoPersistente("regras", CFG_PADRAO, saneRegras);         // severidade das regras
+  const [modoGrafico, setModoGrafico] = useEstadoPersistente("modoGrafico", "separados", saneEm(["separados", "juntos", "ambos"]));
+  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino"]));   // aba aberta
+  // Estado temporário (não persiste): texto dos campos do formulário e mensagem de erro
   const [entradas, setEntradas] = useState(["", "", ""]);
   const [erro, setErro] = useState("");
-  const [regrasCfg, setRegrasCfg] = useState(CFG_PADRAO);   // severidade de cada regra de Westgard
-  const [modoGrafico, setModoGrafico] = useState("separados");   // "separados" | "juntos" | "ambos"
 
   const { numNiveis } = config;
   const parametros = config.niveis.slice(0, numNiveis).map(calcularParametros);
   const pronto = parametros.every(p => p !== null);
-  const mostrarJuntos = modoGrafico !== "separados";      // gráfico combinado em Z-Score
-  const mostrarSeparados = modoGrafico !== "juntos";      // um gráfico + estatísticas por nível
-  const aval = avaliarRegras(montarZ(corridas, parametros), regrasCfg);   // MOTOR DE REGRAS: roda a cada render, em tempo real
-  const emExercicios = modoGrafico === "exercicios";
+  const mostrarJuntos = modoGrafico !== "separados";
+  const mostrarSeparados = modoGrafico !== "juntos";
+  const aval = avaliarRegras(montarZ(corridas, parametros), regrasCfg);   // MOTOR DE REGRAS: roda a cada render
+  const daUltima = aval.violacoes.filter(v => v.dia === aval.ultimoDia);
+  const status = aval.ultimoDia < 0 ? ["neutro", "Sem dados"]
+    : daUltima.some(v => v.tipo === "Rejeição") ? ["rejeicao", "Última corrida: rejeição"]
+    : daUltima.length ? ["alerta", "Última corrida: alerta"] : ["neutro", "Última corrida: em controle"];
+  const [, , , titulo, subtitulo] = ABAS.find(a => a[0] === aba);
 
   function adicionar(e) {
     e.preventDefault();
@@ -1105,7 +1135,7 @@ function App() {
       linha[i] = v; algum = true;
     }
     if (!algum) { setErro("Digite o resultado de pelo menos um nível."); return; }
-    setCorridas([...corridas, linha]);   // nova lista: o React exige não alterar a antiga
+    setCorridas([...corridas, linha]);   // nova lista: o React exige não alterar a antiga (e o localStorage grava)
     setEntradas(["", "", ""]);
     setErro("");
   }
@@ -1116,48 +1146,78 @@ function App() {
     }
   }
 
-  return html`<div className="wrap">
-    <header>
-      <h1>QualiLab · Simulador Analítico</h1>
-      <p className="sub">Aprenda. Simule. Melhore.</p>
-    </header>
+  // Apaga TUDO que está salvo no navegador e volta aos padrões (o useEffect do hook regrava os padrões).
+  function apagarTudo() {
+    if (!window.confirm("Apagar todos os dados salvos neste navegador (níveis, regras e resultados)?")) return;
+    setConfig(CONFIG_INICIAL); setCorridas([]); setRegrasCfg({ ...CFG_PADRAO }); setEntradas(["", "", ""]); setErro("");
+  }
 
-    <p className="aviso">Simulação educacional: use valores fictícios (os valores iniciais são só exemplos). Não é orientação operacional; critérios e condutas reais dependem dos procedimentos e requisitos aplicáveis a cada laboratório.</p>
-
-    <nav className="abas" role="radiogroup" aria-label="Navegação principal">
-      ${[["separados", "Níveis separados"], ["juntos", "Todos juntos (Z-Score)"], ["ambos", "Separados e juntos"], ["exercicios", "Exercícios"]].map(([valor, rotulo]) =>
-        html`<button key=${valor} type="button" role="radio" className="aba" aria-checked=${modoGrafico === valor} onClick=${() => setModoGrafico(valor)}>${rotulo}</button>`)}
-    </nav>
-
-    ${emExercicios ? html`<${Exercicios} />` : html`<${React.Fragment}>
-      <${PainelConfiguracao} config=${config} setConfig=${setConfig} />
-      <${PainelRegras} regrasCfg=${regrasCfg} setRegrasCfg=${setRegrasCfg} />
-
-      <div className="grade">
-        <${FormularioCorrida} numNiveis=${numNiveis} entradas=${entradas} setEntradas=${setEntradas} erro=${erro}
-          pronto=${pronto} dia=${corridas.length + 1} cheio=${corridas.length >= MAX_DIAS} onAdicionar=${adicionar} onLimpar=${limpar} />
-        <${ListaResultados} corridas=${corridas} numNiveis=${numNiveis} />
+  return html`<div className="min-h-screen md:flex">
+    <aside className="bg-slate-900 text-slate-300 md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
+      <div className="flex items-center gap-3 px-5 py-4 md:py-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-extrabold text-white shadow-md">Q</div>
+        <div><div className="text-lg font-bold leading-tight text-white">QualiLab</div><div className="text-xs text-emerald-300">Aprenda. Simule. Melhore.</div></div>
       </div>
+      <nav aria-label="Navegação principal" className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-1 md:flex-col md:pb-0">
+        ${ABAS.map(([id, rotulo, icone]) => html`<button key=${id} type="button" aria-current=${aba === id ? "page" : undefined} onClick=${() => setAba(id)}
+          className=${"flex items-center gap-3 whitespace-nowrap text-left text-sm " + (aba === id ? "bg-emerald-600 text-white shadow-md" : "text-slate-300 hover:bg-slate-800 hover:text-white")}>
+          <${Icone} d=${icone} />${rotulo}</button>`)}
+      </nav>
+      <div className="hidden px-5 py-4 text-xs text-slate-400 md:block">✓ Dados salvos automaticamente neste navegador.</div>
+    </aside>
 
-      <section className="painel painel-grafico" aria-labelledby="t-niveis">
-        <h2 id="t-niveis">Levey-Jennings e estatísticas por nível</h2>
-        ${mostrarJuntos && html`<div className="bloco-nivel">
-          <h3>Todos os níveis juntos · Z-Score</h3>
-          <${GraficoZScore} corridas=${corridas} parametros=${parametros} aval=${aval} />
-        </div>`}
-        ${mostrarSeparados && parametros.map((p, i) => html`<div key=${i} className="bloco-nivel">
-          <h3>Nível ${i + 1}</h3>
-          <${NivelPainel} idx=${i} parametros=${p} corridas=${corridas} aval=${aval} />
-        </div>`)}
-        <p className="dica leg">As linhas de referência são fixas e vêm do Alvo e SD esperados da configuração. Marcação dos pontos:<i style=${{ background: COR_REJEICAO }}></i>regra de rejeição<i style=${{ background: COR_ALERTA }}></i>alerta</p>
-      </section>
+    <main className="min-w-0 flex-1 p-4 md:p-8">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div><h1 className="text-2xl font-bold text-slate-900">${titulo}</h1><p className="text-sm text-slate-500">${subtitulo}</p></div>
+        <div className="flex flex-wrap gap-2"><span className="selo neutro">${numNiveis} ${numNiveis === 1 ? "nível" : "níveis"}</span><span className="selo neutro">${corridas.length} ${corridas.length === 1 ? "corrida" : "corridas"}</span><span className=${"selo " + status[0]}>${status[1]}</span></div>
+      </header>
 
-      <${AlertasSistema} aval=${aval} />
-    <//>`}
+      <p className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">Simulação educacional: use valores fictícios (os valores iniciais são só exemplos). Não é orientação operacional; critérios e condutas reais dependem dos procedimentos e requisitos aplicáveis a cada laboratório.</p>
 
-    <${GuiaWestgard} />
+      ${aba === "painel" && html`<${React.Fragment}>
+        <div className="grade">
+          <${FormularioCorrida} numNiveis=${numNiveis} entradas=${entradas} setEntradas=${setEntradas} erro=${erro}
+            pronto=${pronto} dia=${corridas.length + 1} cheio=${corridas.length >= MAX_DIAS} onAdicionar=${adicionar} onLimpar=${limpar} />
+          <${ListaResultados} corridas=${corridas} numNiveis=${numNiveis} />
+        </div>
 
-    <footer>QualiLab · módulo Simulador Analítico · conteúdo fictício para fins educacionais.</footer>
+        <section className="painel" aria-labelledby="t-niveis">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="t-niveis" className="mb-0">Levey-Jennings e estatísticas por nível</h2>
+            <div role="radiogroup" aria-label="Modo de visualização dos gráficos" className="inline-flex rounded-lg bg-slate-100 p-1">
+              ${[["separados", "Níveis separados"], ["juntos", "Todos juntos (Z-Score)"], ["ambos", "Separados e juntos"]].map(([valor, rotulo]) =>
+                html`<button key=${valor} type="button" role="radio" aria-checked=${modoGrafico === valor} onClick=${() => setModoGrafico(valor)}
+                  className=${"min-h-0 rounded-md px-3 py-1.5 text-sm " + (modoGrafico === valor ? "bg-white text-emerald-800 shadow" : "text-slate-600 hover:text-slate-900")}>${rotulo}</button>`)}
+            </div>
+          </div>
+          ${mostrarJuntos && html`<div className="bloco-nivel">
+            <h3>Todos os níveis juntos · Z-Score</h3>
+            <${GraficoZScore} corridas=${corridas} parametros=${parametros} aval=${aval} />
+          </div>`}
+          ${mostrarSeparados && parametros.map((p, i) => html`<div key=${i} className="bloco-nivel">
+            <h3>Nível ${i + 1}</h3>
+            <${NivelPainel} idx=${i} parametros=${p} corridas=${corridas} aval=${aval} />
+          </div>`)}
+          <p className="dica leg">As linhas de referência são fixas e vêm do Alvo e SD esperados da configuração. Marcação dos pontos:<i style=${{ background: COR_REJEICAO }}></i>regra de rejeição<i style=${{ background: COR_ALERTA }}></i>alerta</p>
+        </section>
+
+        <${AlertasSistema} aval=${aval} />
+      <//>`}
+
+      ${aba === "config" && html`<${React.Fragment}>
+        <${PainelConfiguracao} config=${config} setConfig=${setConfig} />
+        <${PainelRegras} regrasCfg=${regrasCfg} setRegrasCfg=${setRegrasCfg} />
+        <section className="painel" aria-labelledby="t-dados">
+          <h2 id="t-dados">Dados salvos neste navegador</h2>
+          <p className="dica" style=${{ marginTop: 0 }}>Níveis, regras e resultados ficam guardados no navegador e voltam ao atualizar a página. Eles não são enviados a nenhum servidor.</p>
+          <div className="linha" style=${{ marginTop: "12px" }}><button type="button" className="secundario" onClick=${apagarTudo}>Apagar dados salvos</button></div>
+        </section>
+      <//>`}
+
+      ${aba === "treino" && html`<${React.Fragment}><${Exercicios} /><${GuiaWestgard} /><//>`}
+
+      <footer className="mt-8 border-t border-slate-200 pt-4 text-sm text-slate-500">QualiLab · módulo Simulador Analítico · conteúdo fictício para fins educacionais.</footer>
+    </main>
   </div>`;
 }
 
