@@ -1,28 +1,6 @@
 /* =====================================================================
    LabSim — banco de casos de plantão. Para adicionar uma história nova,
    copie um objeto da lista abaixo, troque o id e edite os textos.
-
-   ESTRUTURA DE UM CASO
-   {
-     id, titulo, setor, dificuldade,
-     descricao:  texto do cenário inicial (tela de abertura)
-     limiteAtraso: (opcional) minutos de atraso que enchem a barra (padrão 90)
-     kpisIniciais: (opcional) { atraso, qualidade, seguranca }  (padrão 0 / 100 / 100)
-     inicio: id do primeiro nó
-     nos: {
-       idDoNo: {
-         hora, titulo, texto,
-         dados: [["Rótulo", "valor"], ...]      (opcional: dados do analisador/controle)
-         opcoes: [{ texto, proximo, impacto: { atraso, qualidade, seguranca }, feedback }]
-       },
-       idDoFinal: {
-         fim: true, resultado: "seguro" | "atencao" | "falha",
-         titulo, texto, licao
-       }
-     }
-   }
-   "impacto": atraso soma minutos; qualidade e seguranca somam/subtraem pontos (0 a 100).
-   "proximo" deve ser o id de outro nó do mesmo caso.
    ===================================================================== */
 window.cenariosPlantao = [
   {
@@ -74,6 +52,8 @@ window.cenariosPlantao = [
         texto: "Você revisa o registro: o lote de reagente foi trocado às 6h50 e o equipamento não foi recalibrado. Um viés positivo logo depois da troca de lote é coerente com a violação observada.",
         dados: [["Troca de lote", "06:50, sem recalibração"], ["Tipo de erro sugerido", "sistemático"]],
         opcoes: [
+          { taxa: "Recalibrar com o calibrador do novo lote e rodar controles novos.", proximo: "n3", impacto: { atraso: 15, qualidade: 15, seguranca: 10 },
+            feedback: "Calibração é a ação indicada para erro sistemático após troca de lote. Os controles novos verificam se o problema foi corrigido." },
           { texto: "Recalibrar com o calibrador do novo lote e rodar controles novos.", proximo: "n3", impacto: { atraso: 15, qualidade: 15, seguranca: 10 },
             feedback: "Calibração é a ação indicada para erro sistemático após troca de lote. Os controles novos verificam se o problema foi corrigido." },
           { texto: "Abrir um frasco novo de controle e liberar a rotina sem recalibrar.", proximo: "fim_falha_b", impacto: { atraso: 5, qualidade: -25, seguranca: -30 },
@@ -102,36 +82,120 @@ window.cenariosPlantao = [
             feedback: "Os laudos errados já emitidos continuam valendo. Corrigir só o futuro deixa pacientes com resultados falsos." }
         ]
       },
-
-      fim_seguro: {
-        fim: true, resultado: "seguro", titulo: "Plantão seguro",
-        texto: "Você suspendeu a liberação diante de uma regra de rejeição, encontrou a causa, recalibrou e só liberou resultados com controles aceitáveis. A urgência foi atendida logo em seguida.",
-        licao: "Uma violação de rejeição (2_2s) pede parar e investigar antes de liberar. O pequeno atraso do início evitou resultados incorretos e deixou o laboratório pronto para a urgência."
+      fim_seguro: { fim: true, resultado: "seguro", titulo: "Plantão seguro", texto: "Você suspendeu a liberação diante de uma regra de rejeição, encontrou a causa, recalibrou e só liberou resultados com controles aceitáveis.", licao: "Parar e investigar evita danos diretos aos pacientes." },
+      fim_atencao: { fim: true, resultado: "atencao", titulo: "Plantão seguro, mas lento", texto: "Nenhum resultado incorreto saiu, mas a falta de priorização atrasou um caso grave.", licao: "Qualidade analítica e agilidade devem caminhar juntas." },
+      fim_atencao_rec: { fim: true, resultado: "atencao", titulo: "Falha contida com ação corretiva", texto: "Você conteve o dano, emitiu laudos corrigidos e notificou a equipe clínica.", licao: "Erros acontecem; a rastreabilidade e a ação retrospectiva (lookback) definem a excelência da gestão." },
+      fim_falha_a: { fim: true, resultado: "falha", titulo: "Falha grave de liberação", texto: "A rotina seguiu com controle reprovado e alerta médico ignorado.", licao: "Sempre investigue discordâncias clínicas frente a alertas de CQ." },
+      fim_falha_b: { fim: true, resultado: "falha", titulo: "Causa não corrigida", texto: "O erro sistemático permaneceu ativo sem correção efetiva.", licao: "Trocar o frasco de controle não resolve desvios de método." },
+      fim_falha_c: { fim: true, resultado: "falha", titulo: "Controle aprovado por acaso", texto: "Repetir até passar esconde o problema real.", licao: "Testing into compliance é uma violação grave de qualidade." }
+    }
+  },
+  {
+    id: "eletrolitos-r4s",
+    titulo: "Eletrolíticos no Plantão Noturno: O choque da regra R₄s",
+    setor: "Eletrólitos / Ion-seletivo",
+    dificuldade: "Intermediário",
+    descricao: "São 23h15. O plantão noturno está calmo até que a rotina de eletrólitos (Sódio e Potássio) é processada. Ao olhar o gráfico de Levey-Jennings dos dois níveis de controle de Sódio na corrida atual, você nota uma dispersão incomum entre os frascos.",
+    limiteAtraso: 90,
+    inicio: "r4s_1",
+    nos: {
+      r4s_1: {
+        hora: "23:20", titulo: "Análise do Gráfico de Sódio",
+        texto: "O Sódio Nível 1 deu +2.4 SD e o Sódio Nível 2 deu -2.3 SD na mesma corrida analítica. A amplitude total entre eles ultrapassou 4 SD. A enfermeira do CTI liga cobrando o potássio e o sódio de um paciente em pós-operatório.",
+        dados: [["Sódio Nível 1", "+2,4 SD (Acima do limite de alerta)"], ["Sódio Nível 2", "-2,3 SD (Abaixo do limite de alerta)"], ["Amplitude (N1 - N2)", "4,7 SD total"]],
+        opcoes: [
+          { texto: "Identificar violação da regra R₄s (Erro Aleatório severo). Rejeitar a corrida imediatamente.", proximo: "r4s_investigar", impacto: { atraso: 10, qualidade: 10, seguranca: 10 },
+            feedback: "Excelente! A regra R₄s pega discrepâncias de amplitude em uma mesma corrida. Indica erro puramente aleatório (ex: problema momentâneo de agitação ou bolha)." },
+          { texto: "Tratar como variação aceitável, já que os pontos estão individuais abaixo de 3 SD, e liberar a rotina.", proximo: "r4s_falha", impacto: { atraso: 0, qualidade: -30, seguranca: -30 },
+            feedback: "Erro grave. A distância de 4 SD entre os controles na mesma passada destrói a confiabilidade da corrida." }
+        ]
       },
-      fim_atencao: {
-        fim: true, resultado: "atencao", titulo: "Plantão seguro, mas lento",
-        texto: "Nenhum resultado incorreto saiu, porque você investigou e corrigiu antes de liberar. A decisão de manter a ordem de chegada, porém, atrasou um paciente grave.",
-        licao: "Qualidade analítica e agilidade andam juntas. Com controles aceitáveis, a urgência deve ser priorizada."
+      r4s_investigar: {
+        hora: "23:35", titulo: "Investigando o Erro Aleatório",
+        texto: "Você verifica o equipamento de íon-seletivo. Os eletrodos estão conectados, mas nota-se microbolhas na linha de sucção do braço mecânico devido a um tubo mal posicionado.",
+        dados: [["Causa suspeita", "Microbolhas na linha de aspiração"], ["Status", "Amostras de CTI aguardando"]],
+        opcoes: [
+          { texto: "Eliminar as bolhas com ciclo de lavagem (prime), homogeneizar novamente os controles e reprocessar a corrida.", proximo: "r4s_sucesso", impacto: { atraso: 15, qualidade: 15, seguranca: 15 },
+            feedback: "Conduta perfeita. Resolve o componente aleatório físico, roda novos controles e valida o sistema antes dos pacientes." },
+          { texto: "Apenas passar os controles de novo sem limpeza, torcendo para encaixarem.", proximo: "r4s_falha2", impacto: { atraso: 5, qualidade: -20, seguranca: -20 },
+            feedback: "Sem remover a bolha da linha, a chance de nova falha na R₄s é altíssima." }
+        ]
       },
-      fim_atencao_rec: {
-        fim: true, resultado: "atencao", titulo: "Falha contida, com ação corretiva",
-        texto: "Resultados foram liberados com controle reprovado, mas você corrigiu a causa, reprocessou as amostras afetadas, emitiu laudos corrigidos e avisou os médicos.",
-        licao: "O ideal era não liberar. Quando o erro já saiu, a rastreabilidade e a comunicação transformam uma falha grave em um evento controlado e documentado."
+      r4s_sucesso: {
+        hora: "23:55", titulo: "Controles Restaurados",
+        texto: "Com o sistema limpo, os controles de Sódio deram Z-Score de +0.2 e -0.1. A corrida foi validada com sucesso.",
+        dados: [["Sódio N1", "Z = +0,2"], ["Sódio N2", "Z = −0,1"]],
+        opcoes: [
+          { texto: "Liberar os exames do CTI e o restante da rotina.", proximo: "fim_r4s_ok", impacto: { atraso: 0, qualidade: 10, seguranca: 15 },
+            feedback: "Tudo nos conformes. O CTI recebe resultados confiáveis após contenção rigorosa." }
+        ]
       },
-      fim_falha_a: {
-        fim: true, resultado: "falha", titulo: "Falha grave de liberação",
-        texto: "A rotina foi liberada com controle reprovado, e o alerta do médico foi descartado. O viés positivo continuou afetando pacientes ao longo do dia.",
-        licao: "Controle aprovado depende de todas as regras, não só do limite de 3 SD. A discordância clínica é um sinal que merece investigação, não defesa."
+      r4s_falha: {
+        fim: true, resultado: "falha", titulo: "Liberação com Erro Aleatório",
+        texto: "Você liberou exames sob vigência de uma R₄s não investigada. O eletrólito do paciente do CTI veio completamente distorcido.",
+        licao: "A regra R₄s é um marco clássico de erro aleatório crítico na mesma corrida. Ignorá-la compromete o diagnóstico imediato."
       },
-      fim_falha_b: {
-        fim: true, resultado: "falha", titulo: "Causa não corrigida",
-        texto: "A causa do erro (viés após troca de lote sem recalibração) não foi tratada de forma completa. Resultados incorretos continuaram sendo liberados ou ficaram sem correção.",
-        licao: "Erro sistemático exige ação sobre a causa e verificação com controles. Trocar o material de controle ou corrigir só o futuro não resolve."
+      r4s_falha2: {
+        fim: true, resultado: "falha", titulo: "Insistência sem correção",
+        texto: "O problema mecânico persistiu, gerando novas falhas e atrasando criticamente o plantão noturno.",
+        licao: "Erro aleatório físico exige intervenção física (limpeza/purga), e não apenas nova tentativa estatística."
       },
-      fim_falha_c: {
-        fim: true, resultado: "falha", titulo: "Controle aprovado por acaso",
-        texto: "Você liberou a rotina depois de repetir o controle até ele passar. O erro sistemático seguiu ativo, e a liberação foi falsamente tranquilizadora.",
-        licao: "Repetir controles até um cair dentro dos limites é uma prática arriscada: ela esconde o problema em vez de resolvê-lo."
+      fim_r4s_ok: {
+        fim: true, resultado: "seguro", titulo: "Plantão Noturno exemplar",
+        texto: "Você interceptou uma falha de R₄s, identificou a bolha mecânica, limpou o sistema e liberou os resultados com total segurança.",
+        licao: "A atenção aos detalhes no gráfico de Levey-Jennings evita erros grotescos na madrugada."
+      }
+    }
+  },
+  {
+    id: "enzimas-7t",
+    titulo: "Enzimas Hepáticas: A Tendência Silenciosa (Regra 7T)",
+    setor: "Química Clínica",
+    dificuldade: "Avançado",
+    descricao: "Durante a verificação semanal dos gráficos de controle de AST e ALT, você percebe um comportamento sutil: nos últimos 7 dias, os pontos do controle de ALT vêm subindo de forma contínua, dia após dia, caminhando em direção ao limite superior.",
+    limiteAtraso: 90,
+    inicio: "t7_1",
+    nos: {
+      t7_1: {
+        hora: "14:00", titulo: "Análise da Tendência (Trend)",
+        texto: "Os valores diários de ALT foram: +0.2, +0.4, +0.6, +0.9, +1.2, +1.5 e hoje +1.8 SD. Nenhum ponto cruzou 2 SD ainda, mas são 7 dias seguidos subindo na mesma direção (Regra 7T).",
+        dados: [["Regra acionada", "7T (Tendência sistemática de degradação)"], ["Ponto atual", "+1,8 SD"]],
+        opcoes: [
+          { texto: "Ignorar o alerta, já que o ponto de hoje (+1,8 SD) ainda está tecnicamente dentro da faixa de aceitação de ±2 SD.", proximo: "t7_ignorar", impacto: { atraso: 0, qualidade: -25, seguranca: -25 },
+            feedback: "Erro conceitual grave. Esperar cruzar 2 ou 3 SD numa tendência significa permitir que o viés afete laudos de pacientes antes de agir." },
+          { texto: "Tratar como Tendência (7T). Iniciar investigação preventiva de estabilidade de reagente e calibração.", proximo: "t7_investigar", impacto: { atraso: 15, qualidade: 15, seguranca: 15 },
+            feedback: "Perfeito! A regra 7T avisa sobre deriva sistemática antes que a catástrofe analítica aconteça." }
+        ]
+      },
+      t7_investigar: {
+        hora: "14:30", titulo: "Rastreando a Deriva",
+        texto: "Você verifica o frasco de reagente de ALT: ele está no final da validade on-board (aberto há 28 dias). A fotometria do equipamento também aponta lâmpada com muitas horas de uso.",
+        dados: [["Reagente ALT", "Próximo ao limite de estabilidade aberta"], ["Lâmpada fotométrica", "85% de desgaste"]],
+        opcoes: [
+          { texto: "Substituir o frasco de reagente por um novo, recalibrar o ensaio e testar novos controles.", proximo: "t7_sucesso", impacto: { atraso: 20, qualidade: 20, seguranca: 20 },
+            feedback: "Ação preventiva exemplar. Corta a tendência pela raiz e zera o viés antes de gerar laudos incorretos." },
+          { texto: "Apenas esticar a validade do reagente por mais uma semana para economizar insumo.", proximo: "t7_ignorar", impacto: { atraso: 0, qualidade: -30, seguranca: -30 },
+            feedback: "Economia de reagente que custa a confiabilidade laboratorial." }
+        ]
+      },
+      t7_sucesso: {
+        hora: "15:10", titulo: "Processo Reestabilizado",
+        texto: "Com o reagente novo e a calibração refeita, o controle de ALT retornou imediatamente para a faixa de Z-Score próxima de 0.0.",
+        dados: [["Novo Z-Score ALT", "Z = +0,1"]],
+        opcoes: [
+          { texto: "Documentar a ação preventiva no livro de ocorrências e liberar as enzimas normalmente.", proximo: "fim_t7_ok", impacto: { atraso: 0, qualidade: 15, seguranca: 15 },
+            feedback: "Ciclo de qualidade completo e documentado." }
+        ]
+      },
+      t7_ignorar: {
+        fim: true, resultado: "falha", titulo: "Estouro de Limite Posterior",
+        texto: "Dois dias depois, a tendência empurrou o ensaio para +3.2 SD (regra 1₃s), invalidando dezenas de exames de perfil hepático de pacientes externos e do ambulatório.",
+        licao: "Tendências (Trends) nunca devem ser ignoradas. O aviso prévio estatístico serve justamente para evitar a rejeição futura."
+      },
+      fim_t7_ok: {
+        fim: true, resultado: "seguro", titulo: "Gestão Proativa de Qualidade",
+        texto: "Você leu a tendência (7T) antes do colapso, trocou o reagente envelhecido e garantiu exames hepáticos impecáveis.",
+        licao: "O controle de qualidade moderno é preditivo e preventivo, e não apenas reativo a erros já estourados."
       }
     }
   }
