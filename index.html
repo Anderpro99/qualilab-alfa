@@ -90,6 +90,7 @@
 <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="exercicios.js"></script>
+<script src="cenarios-plantao.js"></script>
 <script>
 const { useState, useRef, useEffect } = React;
 const html = htm.bind(React.createElement);
@@ -1268,6 +1269,151 @@ function Fundamentos({ onIrPara }) {
   </div>`;
 }
 /* =====================================================================
+   LabSim — Simulador de Plantão Laboratorial
+   Lê os casos de window.cenariosPlantao (arquivo cenarios-plantao.js).
+   Estado do jogo (não persiste): { caso, noId, kpis, hist, escolha }
+   ===================================================================== */
+function carregarCenarios() {
+  const banco = Array.isArray(window.cenariosPlantao) ? window.cenariosPlantao : [];
+  const ids = new Set();
+  return banco.filter(c => {
+    const nos = c && c.nos && typeof c.nos === "object" ? c.nos : null;
+    const ok = nos && c.id && !ids.has(c.id) && c.titulo && c.descricao && nos[c.inicio] && Object.values(nos).every(n =>
+      n && (n.fim ? ["seguro", "atencao", "falha"].includes(n.resultado)
+        : n.titulo && Array.isArray(n.opcoes) && n.opcoes.length >= 2 && n.opcoes.every(o => o && o.texto && nos[o.proximo])));
+    if (!ok) console.warn("[QualiLab] Caso de plantão ignorado (formato inválido ou id repetido):", c && c.id);
+    else ids.add(c.id);
+    return !!ok;
+  });
+}
+
+const limitar = (v, min, max) => Math.max(min, Math.min(max, v));
+function aplicarImpacto(k, imp) {
+  const i = imp || {};
+  return { atraso: Math.max(0, k.atraso + (i.atraso || 0)), qualidade: limitar(k.qualidade + (i.qualidade || 0), 0, 100), seguranca: limitar(k.seguranca + (i.seguranca || 0), 0, 100) };
+}
+const corNota = v => (v >= 70 ? "bg-emerald-500" : v >= 40 ? "bg-amber-500" : "bg-red-500");
+const sinalNum = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v);
+
+/* Indicadores no topo do painel. */
+function KpisPlantao({ kpis, limite }) {
+  const pctAtraso = limitar((kpis.atraso / limite) * 100, 0, 100);
+  const corAtraso = pctAtraso < 35 ? "bg-emerald-500" : pctAtraso < 70 ? "bg-amber-500" : "bg-red-500";
+  const itens = [
+    ["Tempo / Atraso", kpis.atraso + " min de atraso", pctAtraso, corAtraso],
+    ["Qualidade / Conformidade", kpis.qualidade + " / 100", kpis.qualidade, corNota(kpis.qualidade)],
+    ["Segurança do paciente", kpis.seguranca + " / 100", kpis.seguranca, corNota(kpis.seguranca)]
+  ];
+  return html`<div className="mb-5 grid gap-3 sm:grid-cols-3" aria-live="polite">
+    ${itens.map(([nome, texto, pct, cor]) => html`<div key=${nome} className="rounded-xl border border-slate-200 bg-white p-4 shadow-md">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">${nome}</div>
+      <div className="mt-1 text-lg font-bold tabular-nums text-slate-900">${texto}</div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" role="presentation"><div className=${"h-full rounded-full transition-all duration-500 " + cor} style=${{ width: pct + "%" }}></div></div>
+    </div>`)}
+  </div>`;
+}
+
+function ChipsImpacto({ impacto }) {
+  const i = impacto || {};
+  const itens = [["atraso", "Atraso", " min", true], ["qualidade", "Qualidade", "", false], ["seguranca", "Segurança", "", false]].filter(([k]) => i[k]);
+  return html`<div className="mt-2 flex flex-wrap gap-2">${itens.map(([k, nome, un, ruimSobe]) => {
+    const ruim = ruimSobe ? i[k] > 0 : i[k] < 0;
+    return html`<span key=${k} className=${"selo " + (ruim ? "rejeicao" : "neutro")}>${nome} ${sinalNum(i[k])}${un}</span>`;
+  })}</div>`;
+}
+
+function LabSim() {
+  const casos = React.useMemo(carregarCenarios, []);
+  const [jogo, setJogo] = useState(null);
+
+  if (casos.length === 0) return html`<section className="painel" aria-labelledby="t-ls">
+    <h2 id="t-ls">LabSim (Plantão)</h2>
+    <p className="erro">Nenhum caso disponível. Verifique se o arquivo <strong>cenarios-plantao.js</strong> está na mesma pasta do index.html e é carregado antes do script principal.</p>
+  </section>`;
+
+  const iniciar = c => setJogo({ caso: c, noId: c.inicio, kpis: { atraso: 0, qualidade: 100, seguranca: 100, ...(c.kpisIniciais || {}) }, hist: [], escolha: null });
+
+  // ---- Lista de casos ----
+  if (!jogo) return html`<section className="painel" aria-labelledby="t-ls">
+    <h2 id="t-ls">LabSim · Simulador de Plantão Laboratorial</h2>
+    <p className="dica" style=${{ marginTop: 0 }}>Assuma o plantão, tome decisões em sequência e veja o impacto analítico e clínico de cada escolha. Ao final, você recebe um relatório do plantão.</p>
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      ${casos.map(c => html`<article key=${c.id} className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-md">
+        <div className="flex flex-wrap items-center gap-2">
+          ${c.setor && html`<span className="selo neutro">${c.setor}</span>`}
+          ${c.dificuldade && html`<span className=${"selo " + (BADGE_DIFICULDADE[c.dificuldade] || "neutro")}>${c.dificuldade}</span>`}
+        </div>
+        <h3 className="mt-2 text-base text-slate-900">${c.titulo}</h3>
+        <p className="mt-1 line-clamp-4 text-sm text-slate-600">${c.descricao}</p>
+        <div className="mt-auto pt-3"><button type="button" className="primario" onClick=${() => iniciar(c)}>Iniciar plantão</button></div>
+      </article>`)}
+    </div>
+  </section>`;
+
+  const { caso, kpis, hist, escolha } = jogo;
+  const no = caso.nos[jogo.noId];
+  const limite = caso.limiteAtraso || 90;
+  const sair = () => setJogo(null);
+
+  const escolher = op => setJogo(j => ({ ...j, kpis: aplicarImpacto(j.kpis, op.impacto), escolha: op,
+    hist: [...j.hist, { etapa: no.titulo, hora: no.hora, escolha: op.texto, feedback: op.feedback, impacto: op.impacto }] }));
+  const continuar = () => setJogo(j => ({ ...j, noId: j.escolha.proximo, escolha: null }));
+
+  // ---- Relatório final ----
+  if (no.fim) {
+    const cls = { seguro: "ok", atencao: "alerta", falha: "rej" }[no.resultado];
+    return html`<div>
+      <${KpisPlantao} kpis=${kpis} limite=${limite} />
+      <section className="painel" aria-labelledby="t-rel">
+        <h2 id="t-rel">Relatório do plantão</h2>
+        <div className=${"banner " + cls} role="status">${no.titulo}</div>
+        <p className="text-[15px] leading-relaxed text-slate-700">${no.texto}</p>
+        ${no.licao && html`<aside className="mt-3 rounded-lg border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 ring-1 ring-emerald-100"><strong>Lição principal:</strong> ${no.licao}</aside>`}
+        <h3 className="titulo-tabela">Revisão das suas decisões</h3>
+        <ol className="space-y-3">${hist.map((h, i) => html`<li key=${i} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">${h.hora ? h.hora + " · " : ""}${h.etapa}</div>
+          <p className="mt-1 font-semibold text-slate-900">${h.escolha}</p>
+          <p className="mt-1 text-slate-700">${h.feedback}</p>
+          <${ChipsImpacto} impacto=${h.impacto} />
+        </li>`)}</ol>
+        <div className="linha mt-4">
+          <button type="button" className="primario" onClick=${() => iniciar(caso)}>Jogar novamente</button>
+          <button type="button" className="secundario" onClick=${sair}>Voltar à lista de casos</button>
+        </div>
+      </section>
+    </div>`;
+  }
+
+  // ---- Decisão em andamento ----
+  return html`<div>
+    <${KpisPlantao} kpis=${kpis} limite=${limite} />
+    <section className="painel" aria-labelledby="t-fase">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="selo neutro">${caso.setor || "Plantão"}</span>
+        ${no.hora && html`<span className="selo bg-slate-100 text-slate-600">${no.hora}</span>`}
+        <span className="selo bg-slate-100 text-slate-600">Decisão ${hist.length + 1}</span>
+        <button type="button" className="secundario ml-auto min-h-0 px-3 py-1 text-sm" onClick=${sair}>Abandonar caso</button>
+      </div>
+      ${hist.length === 0 && html`<p className="mb-4 rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700 ring-1 ring-slate-200"><strong>Cenário:</strong> ${caso.descricao}</p>`}
+      <h2 id="t-fase">${no.titulo}</h2>
+      <p className="text-[15px] leading-relaxed text-slate-700">${no.texto}</p>
+      ${no.dados && html`<dl className="linhas-est mt-3">${no.dados.map(([r, v]) => html`<div key=${r} className="esp"><dt>${r}</dt><dd>${v}</dd></div>`)}</dl>`}
+      <h3 className="mt-5 text-base">O que você faz?</h3>
+      <div className="opcoes" role="group" aria-label="Opções de decisão">
+        ${no.opcoes.map((o, k) => html`<button key=${k} type="button" disabled=${!!escolha && escolha !== o}
+          className=${"opcao" + (escolha === o ? " certa" : "")} onClick=${() => !escolha && escolher(o)}>${String.fromCharCode(65 + k)}) ${o.texto}</button>`)}
+      </div>
+      ${escolha && html`<div className="feedback certo" role="status">
+        <h3>Impacto da decisão</h3>
+        <p>${escolha.feedback}</p>
+        <${ChipsImpacto} impacto=${escolha.impacto} />
+        <div className="linha mt-3"><button type="button" className="primario" onClick=${continuar}>Continuar</button></div>
+      </div>`}
+    </section>
+  </div>`;
+}
+
+/* =====================================================================
    APLICATIVO — COMO O ESTADO MUDOU PARA SUPORTAR VÁRIOS NÍVEIS
    ---------------------------------------------------------------------
    ANTES:  valores   = [100, 102, 98, ...]               (uma lista só)
@@ -1288,6 +1434,7 @@ const ABAS = [
   ["painel", "Painel de Controle (Gráficos)", "M3 3v18h18M7 15l4-4 3 3 5-6", "Painel de Controle", "Resultados, gráficos de Levey-Jennings e alertas das regras de Westgard"],
   ["config", "Configurações de Regras e Níveis", "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6", "Configurações de Regras e Níveis", "Alvo e SD de cada nível e severidade de cada regra (desativada, alerta ou rejeição)"],
   ["treino", "Modo Treinamento", "M12 3 2 8l10 5 10-5-10-5zM6 10.5V16c0 1 2.7 3 6 3s6-2 6-3v-5.5", "Modo Treinamento", "Exercícios interativos e guia das regras de Westgard"],
+  ["labsim", "LabSim (Plantão)", "M12 6v6l4 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "LabSim · Plantão Laboratorial", "Simulador de decisões em um plantão de laboratório clínico"],
   ["fundamentos", "Fundamentação & História", "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14zM20 17v4H6.5A2.5 2.5 0 0 1 4 18.5", "Fundamentação & História", "Do controle estatístico industrial ao planejamento da qualidade baseado em risco"]
 ];
 function Icone({ d }) {
@@ -1300,7 +1447,7 @@ function App() {
   const [corridas, setCorridas] = useEstadoPersistente("corridas", [], saneCorridas);               // resultados digitados
   const [regrasCfg, setRegrasCfg] = useEstadoPersistente("regras", CFG_PADRAO, saneRegras);         // severidade das regras
   const [modoGrafico, setModoGrafico] = useEstadoPersistente("modoGrafico", "separados", saneEm(["separados", "juntos", "ambos"]));
-  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "fundamentos"]));
+  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "labsim", "fundamentos"]));
   // Estado temporário (não persiste): texto dos campos do formulário e mensagem de erro
   const [entradas, setEntradas] = useState(["", "", ""]);
   const [erro, setErro] = useState("");
@@ -1410,6 +1557,8 @@ function App() {
       <//>`}
 
       ${aba === "treino" && html`<${React.Fragment}><${Treinamento} /><${GuiaWestgard} /><//>`}
+
+      ${aba === "labsim" && html`<${LabSim} />`}
 
       ${aba === "fundamentos" && html`<${Fundamentos} onIrPara=${setAba} />`}
 
