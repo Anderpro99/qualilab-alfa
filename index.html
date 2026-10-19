@@ -446,7 +446,26 @@ function Campo({ id, rotulo, valor, onChange, dica }) {
   </div>`;
 }
 
-function PainelConfiguracao({ config, setConfig }) {
+/* Configuração do limite exibido nos gráficos (visual): 2 SD ou 3 SD. As regras de Westgard
+   continuam usando seus próprios critérios (1_2s, 1_3s, ...), independentemente desta escolha. */
+function PainelLimite({ limiteSD, setLimiteSD }) {
+  const opcoes = [[3, "3 SD (padrão)", "Linhas até ±3 SD: limite clássico de rejeição."], [2, "2 SD", "Linhas até ±2 SD: eixo mais ajustado aos dados."]];
+  return html`<section className="painel" aria-labelledby="t-limite">
+    <h2 id="t-limite">Limite do gráfico (SD máximo)</h2>
+    <fieldset>
+      <legend className="sr-only">Limite do gráfico, em desvios-padrão</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        ${opcoes.map(([v, rotulo, desc]) => html`<label key=${v} className=${"mb-0 flex cursor-pointer items-start gap-3 rounded-lg border p-3 " + (limiteSD === v ? "border-emerald-600 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-slate-300")}>
+          <input type="radio" name="limite-sd" value=${v} checked=${limiteSD === v} onChange=${() => setLimiteSD(v)} className="mt-1 h-4 w-4 accent-emerald-700" />
+          <span><span className="block font-semibold text-slate-900">${rotulo}</span><span className="block text-sm font-normal text-slate-600">${desc}</span></span>
+        </label>`)}
+      </div>
+    </fieldset>
+    <p className="dica">Vale para o gráfico de Levey-Jennings e para o gráfico Z-Score (linhas de referência e escala do eixo Y). Se algum resultado passar do limite escolhido, o eixo cresce para ele continuar visível. As regras de Westgard não mudam com esta opção.</p>
+  </section>`;
+}
+
+function PainelConfiguracao({ config, setConfig, limiteSD = 3 }) {
   const mudarNivel = (i, campo, valor) =>
     setConfig(c => ({ ...c, niveis: c.niveis.map((n, j) => (j === i ? { ...n, [campo]: valor } : n)) }));
 
@@ -486,7 +505,7 @@ function PainelConfiguracao({ config, setConfig }) {
                    </div>`}
         </div>
         <p className=${p ? "dica" : "erro"}>
-          ${p ? "Alvo " + formatar(p.alvo, 2) + " · SD " + formatar(p.sd, 3) + " · ±3 SD: " + formatar(p.alvo - 3 * p.sd, 2) + " a " + formatar(p.alvo + 3 * p.sd, 2)
+          ${p ? "Alvo " + formatar(p.alvo, 2) + " · SD " + formatar(p.sd, 3) + " · ±" + limiteSD + " SD: " + formatar(p.alvo - limiteSD * p.sd, 2) + " a " + formatar(p.alvo + limiteSD * p.sd, 2)
               : "Preencha valores válidos (SD maior que zero; limite superior maior que o inferior)."}
         </p>
       </fieldset>`;
@@ -513,29 +532,42 @@ function FormularioCorrida({ numNiveis, entradas, setEntradas, erro, pronto, dia
   </section>`;
 }
 
-function ListaResultados({ corridas, numNiveis }) {
+function IconeLixeira() {
+  return html`<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" /></svg>`;
+}
+function BotaoRemover({ rotulo, onClick, texto }) {
+  return html`<button type="button" onClick=${onClick} aria-label=${rotulo} title=${rotulo}
+    className="inline-flex min-h-[32px] min-w-[32px] items-center justify-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-400 hover:bg-red-50 hover:text-red-700"><${IconeLixeira} />${texto}</button>`;
+}
+
+/* Lista de resultados. Cada valor tem uma lixeira (remove só aquele ponto) e cada linha tem
+   "Dia" (remove a corrida inteira). As funções de remoção ficam no App, que é dono dos dados. */
+function ListaResultados({ corridas, numNiveis, onRemoverPonto, onRemoverDia }) {
   return html`<section className="painel" aria-labelledby="t-lista">
     <h2 id="t-lista">Resultados inseridos</h2>
     ${corridas.length === 0
       ? html`<p className="vazio">Nenhum resultado ainda.</p>`
       : html`<div className="lista"><table>
-          <thead><tr><th>Dia</th>${Array.from({ length: numNiveis }, (_, i) => html`<th key=${i} className="num">Nível ${i + 1}</th>`)}</tr></thead>
+          <thead><tr><th>Dia</th>${Array.from({ length: numNiveis }, (_, i) => html`<th key=${i} className="num">Nível ${i + 1}</th>`)}<th className="num"><span className="sr-only">Remover dia</span></th></tr></thead>
           <tbody>${corridas.map((r, d) => html`<tr key=${d}><td>Dia ${d + 1}</td>
-            ${Array.from({ length: numNiveis }, (_, i) => html`<td key=${i} className="num">${r[i] === null ? "—" : r[i].toLocaleString("pt-BR", { maximumFractionDigits: 6 })}</td>`)}</tr>`)}</tbody>
+            ${Array.from({ length: numNiveis }, (_, i) => html`<td key=${i} className="num">${r[i] === null ? "—"
+              : html`<div className="flex items-center justify-end gap-1"><span>${r[i].toLocaleString("pt-BR", { maximumFractionDigits: 6 })}</span>
+                  <${BotaoRemover} rotulo=${"Remover o resultado do Nível " + (i + 1) + " no Dia " + (d + 1)} onClick=${() => onRemoverPonto(d, i)} /></div>`}</td>`)}
+            <td className="num"><${BotaoRemover} rotulo=${"Remover todo o Dia " + (d + 1)} texto="Dia" onClick=${() => onRemoverDia(d)} /></td></tr>`)}</tbody>
         </table></div>`}
   </section>`;
 }
 
 /* Gráfico de Levey-Jennings de UM nível.
    As linhas de referência vêm do Alvo e SD ESPERADOS (configuração), não dos pontos digitados. */
-function GraficoNivel({ corridas, idx, alvo, sd, aval }) {
+function GraficoNivel({ corridas, idx, alvo, sd, aval, limiteSD = 3 }) {
   const canvasRef = useRef(null);
   const chartOk = typeof Chart !== "undefined";
 
   useEffect(() => {
     if (!chartOk) return;
     const valores = corridas.map(r => r[idx]);                 // pode conter null (dia sem esse nível)
-    const limites = calcularLimites(alvo, sd);                 // FIXOS: alvo ± k × SD esperado
+    const limites = calcularLimites(alvo, sd).filter(l => Math.abs(l.k) <= limiteSD);   // FIXOS: alvo ± k × SD esperado, só até o limite escolhido (2 ou 3)
     const dias = Math.max(valores.length, DIAS_MINIMOS);
     const rotulos = Array.from({ length: dias }, (_, i) => "Dia " + (i + 1));
 
@@ -556,7 +588,7 @@ function GraficoNivel({ corridas, idx, alvo, sd, aval }) {
       };
     });
 
-    // Eixo Y: cobre −3 SD a +3 SD e também qualquer resultado fora desses limites.
+    // Eixo Y: cobre as linhas exibidas (±limite escolhido) e também qualquer resultado fora delas.
     const todos = [...valores.filter(v => v !== null), ...limites.map(l => l.valor)];
     const minimo = Math.min(...todos), maximo = Math.max(...todos);
     const folga = (maximo - minimo) * 0.08;
@@ -580,7 +612,7 @@ function GraficoNivel({ corridas, idx, alvo, sd, aval }) {
       }
     });
     return () => grafico.destroy();
-  }, [corridas, idx, alvo, sd, aval.assinatura]);
+  }, [corridas, idx, alvo, sd, aval.assinatura, limiteSD]);
 
   if (!chartOk) return html`<p className="erro">${MSG_SEM_GRAFICO}</p>`;
   return html`<div className="caixa-grafico">
@@ -897,7 +929,7 @@ function Treinamento() {
 }
 
 /* Gráfico combinado: todos os níveis ativos convertidos em Z-Score, no mesmo eixo (−3 a +3). */
-function GraficoZScore({ corridas, parametros, aval }) {
+function GraficoZScore({ corridas, parametros, aval, limiteSD = 3 }) {
   const canvasRef = useRef(null);
   // "chave" muda só quando alvo/SD mudam. Evita redesenhar o gráfico a cada tecla digitada.
   const chave = parametros.map(p => (p ? p.alvo + "/" + p.sd : "x")).join("|");
@@ -907,7 +939,7 @@ function GraficoZScore({ corridas, parametros, aval }) {
   useEffect(() => {
     if (!canvasRef.current) return;
     const rotulos = Array.from({ length: Math.max(corridas.length, DIAS_MINIMOS) }, (_, i) => "Dia " + (i + 1));
-    let zExtremo = 3;   // eixo Y = ±3; só cresce se algum ponto passar de ±3, para não esconder dados
+    let zExtremo = limiteSD;   // eixo Y = ±limite escolhido (2 ou 3); só cresce se algum ponto passar dele, para não esconder dados
 
     const seriesNiveis = [];
     parametros.forEach((p, i) => {
@@ -924,7 +956,7 @@ function GraficoZScore({ corridas, parametros, aval }) {
     });
 
     // Referências em Z fixo: 0, ±1, ±2, ±3 (a linha 0 é neutra para não confundir com o Nível 2 verde).
-    const seriesRef = [3, 2, 1, 0, -1, -2, -3].map(k => {
+    const seriesRef = [3, 2, 1, 0, -1, -2, -3].filter(k => Math.abs(k) <= limiteSD).map(k => {
       const e = ESTILO_LINHAS[Math.abs(k)];
       return {
         label: e.nome === "Média" ? "Alvo (Z = 0)" : e.nome, data: rotulos.map(() => k),
@@ -958,11 +990,11 @@ function GraficoZScore({ corridas, parametros, aval }) {
       }
     });
     return () => grafico.destroy();
-  }, [corridas, chave, aval.assinatura]);
+  }, [corridas, chave, aval.assinatura, limiteSD]);
 
   return html`<div>
     ${!chartOk ? html`<p className="erro">${MSG_SEM_GRAFICO}</p>` : algumValido
-      ? html`<div className="caixa-grafico"><canvas ref=${canvasRef} role="img" aria-label="Gráfico combinado em Z-Score com todos os níveis ativos, eixo de menos 3 a mais 3."></canvas></div>`
+      ? html`<div className="caixa-grafico"><canvas ref=${canvasRef} role="img" aria-label=${"Gráfico combinado em Z-Score com todos os níveis ativos, limites de menos " + limiteSD + " a mais " + limiteSD + " desvios-padrão."}></canvas></div>`
       : html`<p className="erro">Defina alvo e SD válidos em pelo menos um nível para ver o gráfico combinado.</p>`}
     <p className="dica">Z = (resultado − alvo) ÷ SD esperado. Z = 0 é o alvo e +2 é 2 SD acima dele. Cada nível usa o próprio alvo e SD da configuração, então níveis com escalas diferentes ficam comparáveis no mesmo eixo.</p>
   </div>`;
@@ -1104,7 +1136,7 @@ function GuiaWestgard() {
 }
 
 /* Gráfico + estatística real (dos pontos digitados) do nível ativo. */
-function NivelPainel({ idx, parametros, corridas, aval }) {
+function NivelPainel({ idx, parametros, corridas, aval, limiteSD = 3 }) {
   const serie = corridas.map(r => r[idx]).filter(v => v !== null);   // ignora dias sem esse nível
   const n = serie.length;
   const media = calcularMedia(serie);
@@ -1130,7 +1162,7 @@ function NivelPainel({ idx, parametros, corridas, aval }) {
 
   return html`<div className="nivel-grid">
     <div>${parametros
-      ? html`<${GraficoNivel} corridas=${corridas} idx=${idx} alvo=${parametros.alvo} sd=${parametros.sd} aval=${aval} />`
+      ? html`<${GraficoNivel} corridas=${corridas} idx=${idx} alvo=${parametros.alvo} sd=${parametros.sd} aval=${aval} limiteSD=${limiteSD} />`
       : html`<p className="erro">Defina alvo e SD válidos deste nível na configuração para ver o gráfico.</p>`}</div>
     <dl className="linhas-est" aria-live="polite">
       ${esperado.map(r => html`<div key=${r[0]} className="esp"><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`)}
@@ -1169,6 +1201,7 @@ const saneCorridas = c => (Array.isArray(c)
   ? c.slice(0, MAX_DIAS).filter(r => Array.isArray(r) && r.length === 3).map(r => r.map(v => (typeof v === "number" && Number.isFinite(v) ? v : null)))
   : []);
 const saneRegras = c => Object.fromEntries(Object.keys(CFG_PADRAO).map(r => [r, ["off", "alerta", "rejeicao"].includes(c && c[r]) ? c[r] : CFG_PADRAO[r]]));
+const saneLimite = v => (v === 2 || v === 3 ? v : 3);   // limite do gráfico: só 2 ou 3 SD (padrão 3)
 const saneEm = lista => v => (lista.includes(v) ? v : lista[0]);
 /* ===================== FUNDAMENTAÇÃO & HISTÓRIA ===================== */
 const ICONES_FUND = {
@@ -1463,6 +1496,7 @@ function App() {
   const [corridas, setCorridas] = useEstadoPersistente("corridas", [], saneCorridas);               // resultados digitados
   const [regrasCfg, setRegrasCfg] = useEstadoPersistente("regras", CFG_PADRAO, saneRegras);         // severidade das regras
   const [modoGrafico, setModoGrafico] = useEstadoPersistente("modoGrafico", "separados", saneEm(["separados", "juntos", "ambos"]));
+  const [limiteSD, setLimiteSD] = useEstadoPersistente("limiteSD", 3, saneLimite);                // SD máximo exibido nos gráficos (2 ou 3)
   const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "labsim", "fundamentos"]));
   // Estado temporário (não persiste): texto dos campos do formulário e mensagem de erro
   const [entradas, setEntradas] = useState(["", "", ""]);
@@ -1498,6 +1532,15 @@ function App() {
     setErro("");
   }
 
+  // Remove UM resultado (um nível em um dia). O dia continua existindo (a numeração dos dias não muda);
+  // se o dia ficar sem nenhum resultado, ele é removido. Tudo (estatísticas, gráficos, alertas e
+  // localStorage) se atualiza sozinho, porque é calculado a partir de "corridas" a cada render.
+  function removerPonto(dia, nivel) {
+    setCorridas(cs => cs.map((r, j) => (j === dia ? r.map((v, k) => (k === nivel ? null : v)) : r)).filter(r => r.some(v => v !== null)));
+  }
+  // Remove a corrida (dia) inteira; os dias seguintes são renumerados.
+  function removerDia(dia) { setCorridas(cs => cs.filter((_, j) => j !== dia)); }
+
   function limpar() {
     if (corridas.length === 0 || window.confirm("Apagar todos os resultados? A configuração dos níveis será mantida.")) {
       setCorridas([]); setEntradas(["", "", ""]); setErro("");
@@ -1507,7 +1550,7 @@ function App() {
   // Apaga TUDO que está salvo no navegador e volta aos padrões (o useEffect do hook regrava os padrões).
   function apagarTudo() {
     if (!window.confirm("Apagar todos os dados salvos neste navegador (níveis, regras e resultados)?")) return;
-    setConfig(CONFIG_INICIAL); setCorridas([]); setRegrasCfg({ ...CFG_PADRAO }); setEntradas(["", "", ""]); setErro("");
+    setConfig(CONFIG_INICIAL); setCorridas([]); setRegrasCfg({ ...CFG_PADRAO }); setLimiteSD(3); setEntradas(["", "", ""]); setErro("");
   }
 
   return html`<div className="min-h-screen md:flex">
@@ -1536,7 +1579,7 @@ function App() {
         <div className="grade">
           <${FormularioCorrida} numNiveis=${numNiveis} entradas=${entradas} setEntradas=${setEntradas} erro=${erro}
             pronto=${pronto} dia=${corridas.length + 1} cheio=${corridas.length >= MAX_DIAS} onAdicionar=${adicionar} onLimpar=${limpar} />
-          <${ListaResultados} corridas=${corridas} numNiveis=${numNiveis} />
+          <${ListaResultados} corridas=${corridas} numNiveis=${numNiveis} onRemoverPonto=${removerPonto} onRemoverDia=${removerDia} />
         </div>
 
         <section className="painel" aria-labelledby="t-niveis">
@@ -1550,11 +1593,11 @@ function App() {
           </div>
           ${mostrarJuntos && html`<div className="bloco-nivel">
             <h3>Todos os níveis juntos · Z-Score</h3>
-            <${GraficoZScore} corridas=${corridas} parametros=${parametros} aval=${aval} />
+            <${GraficoZScore} corridas=${corridas} parametros=${parametros} aval=${aval} limiteSD=${limiteSD} />
           </div>`}
           ${mostrarSeparados && parametros.map((p, i) => html`<div key=${i} className="bloco-nivel">
             <h3>Nível ${i + 1}</h3>
-            <${NivelPainel} idx=${i} parametros=${p} corridas=${corridas} aval=${aval} />
+            <${NivelPainel} idx=${i} parametros=${p} corridas=${corridas} aval=${aval} limiteSD=${limiteSD} />
           </div>`)}
           <p className="dica leg">As linhas de referência são fixas e vêm do Alvo e SD esperados da configuração. Marcação dos pontos:<i style=${{ background: COR_REJEICAO }}></i>regra de rejeição<i style=${{ background: COR_ALERTA }}></i>alerta</p>
         </section>
@@ -1563,7 +1606,8 @@ function App() {
       <//>`}
 
       ${aba === "config" && html`<${React.Fragment}>
-        <${PainelConfiguracao} config=${config} setConfig=${setConfig} />
+        <${PainelConfiguracao} config=${config} setConfig=${setConfig} limiteSD=${limiteSD} />
+        <${PainelLimite} limiteSD=${limiteSD} setLimiteSD=${setLimiteSD} />
         <${PainelRegras} regrasCfg=${regrasCfg} setRegrasCfg=${setRegrasCfg} />
         <section className="painel" aria-labelledby="t-dados">
           <h2 id="t-dados">Dados salvos neste navegador</h2>
