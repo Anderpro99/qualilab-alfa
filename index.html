@@ -92,6 +92,7 @@
 <script src="exercicios.js"></script>
 <script src="cenarios-plantao.js"></script>
 <script src="cenarios-plantao-extra.js"></script>
+<script src="trilha-estudos.js"></script>
 <script>
 const { useState, useRef, useEffect } = React;
 const html = htm.bind(React.createElement);
@@ -1479,7 +1480,146 @@ function LabSim() {
    Reduzir o nº de níveis NÃO apaga dados: os valores continuam em corridas e
    voltam a aparecer se o nível for reativado (dias antigos ficam com "—").
    ===================================================================== */
+/* =====================================================================
+   APRENDENDO DO ZERO: curso passo a passo.
+   O conteúdo vem de trilha-estudos.js (window.trilhaEstudos); aqui só ficam a validação,
+   o layout (menu lateral + área de leitura) e o progresso salvo no localStorage.
+   ===================================================================== */
+const TIPOS_BLOCO = ["titulo", "paragrafo", "lista", "definicao", "formula", "exemplo", "atencao", "tabela"];
+const saneTexto = v => (typeof v === "string" ? v : "");
+const saneLista = c => (Array.isArray(c) ? c.filter(x => typeof x === "string").slice(0, 500) : []);
+
+/* Valida a trilha como os outros bancos de dados: item inválido é ignorado com aviso no console. */
+function carregarTrilha() {
+  const banco = Array.isArray(window.trilhaEstudos) ? window.trilhaEstudos : [];
+  const ids = new Set();
+  return banco.map(m => {
+    if (!m || !m.id || !m.titulo || !Array.isArray(m.licoes)) { console.warn("[QualiLab] Módulo ignorado (formato inválido):", m && m.id); return null; }
+    const licoes = m.licoes.filter(l => {
+      const ok = l && l.id && !ids.has(l.id) && l.titulo && Array.isArray(l.conteudo);
+      if (!ok) console.warn("[QualiLab] Lição ignorada (formato inválido ou id repetido):", l && l.id); else ids.add(l.id);
+      return !!ok;
+    }).map(l => ({ ...l, conteudo: l.conteudo.filter(b => { const ok = b && TIPOS_BLOCO.includes(b.tipo); if (!ok) console.warn("[QualiLab] Bloco ignorado na lição", l.id, b && b.tipo); return ok; }) }));
+    return licoes.length ? { ...m, licoes } : null;
+  }).filter(Boolean);
+}
+
+/* Texto com formatação mínima: **negrito** e *itálico*. */
+function TextoRico({ texto }) {
+  const partes = String(texto).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return html`<${React.Fragment}>${partes.map((t, i) =>
+    t.startsWith("**") && t.length > 4 ? html`<strong key=${i} className="font-semibold text-slate-900">${t.slice(2, -2)}</strong>`
+    : t.startsWith("*") && t.length > 2 ? html`<em key=${i}>${t.slice(1, -1)}</em>` : t)}<//>`;
+}
+
+const CORES_CALLOUT = {
+  definicao: ["Definição", "border-sky-500 bg-sky-50 text-sky-950 ring-sky-100", "text-sky-800"],
+  exemplo: ["Exemplo", "border-amber-500 bg-amber-50 text-amber-950 ring-amber-100", "text-amber-800"],
+  atencao: ["Atenção", "border-rose-500 bg-rose-50 text-rose-950 ring-rose-100", "text-rose-800"]
+};
+
+/* Renderiza um bloco de conteúdo conforme o seu "tipo". */
+function Bloco({ b }) {
+  if (b.tipo === "titulo") return html`<h3 className="flex items-center gap-2 pt-2 text-lg font-bold text-slate-900"><span className="h-5 w-1 rounded bg-emerald-600"></span><${TextoRico} texto=${b.texto} /></h3>`;
+  if (b.tipo === "paragrafo") return html`<p className="text-[15px] leading-relaxed text-slate-700"><${TextoRico} texto=${b.texto} /></p>`;
+  if (b.tipo === "lista") return html`<ul className="space-y-2 text-[15px] leading-relaxed text-slate-700">${(b.itens || []).map((t, i) =>
+    html`<li key=${i} className="flex gap-3"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600"></span><span><${TextoRico} texto=${t} /></span></li>`)}</ul>`;
+  if (b.tipo === "formula") return html`<figure className="overflow-hidden rounded-xl bg-slate-900 text-slate-100 shadow-md">
+    <figcaption className="border-b border-slate-700 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-300">${b.titulo || "Fórmula"}</figcaption>
+    <div className="overflow-x-auto px-5 py-4 font-mono text-base leading-loose text-emerald-100 sm:text-lg"><div className="whitespace-pre">${b.expressao}</div></div>
+    ${b.legenda && html`<div className="border-t border-slate-700 px-5 py-2 text-sm text-slate-300">${b.legenda}</div>`}
+  </figure>`;
+  if (b.tipo === "tabela") return html`<div className="overflow-x-auto rounded-lg border border-slate-200"><table>
+    <thead className="bg-slate-50"><tr>${(b.cabecalho || []).map((c, i) => html`<th key=${i}>${c}</th>`)}</tr></thead>
+    <tbody>${(b.linhas || []).map((l, i) => html`<tr key=${i}>${l.map((c, j) => html`<td key=${j}>${c}</td>`)}</tr>`)}</tbody>
+  </table></div>`;
+  const [rotulo, caixa, corTitulo] = CORES_CALLOUT[b.tipo];   // definicao | exemplo | atencao
+  return html`<aside className=${"rounded-lg border-l-4 px-4 py-3 text-[15px] leading-relaxed ring-1 " + caixa}>
+    <div className=${"mb-1 text-sm font-semibold " + corTitulo}><span className="mr-2 text-xs font-bold uppercase tracking-wide opacity-70">${rotulo}</span>${b.titulo}</div>
+    ${b.texto && html`<p><${TextoRico} texto=${b.texto} /></p>`}
+    ${Array.isArray(b.passos) && html`<ol className="mt-1 list-decimal space-y-1 pl-5">${b.passos.map((t, i) => html`<li key=${i}><${TextoRico} texto=${t} /></li>`)}</ol>`}
+  </aside>`;
+}
+
+function AprendendoDoZero({ onIrPara }) {
+  const modulos = React.useMemo(carregarTrilha, []);
+  const licoes = React.useMemo(() => modulos.flatMap((m, mi) => m.licoes.map((l, li) => ({ ...l, modulo: m, numero: (mi + 1) + "." + (li + 1), nModulo: mi + 1 }))), [modulos]);
+  const [atualId, setAtualId] = useEstadoPersistente("trilhaLicao", "", saneTexto);          // lição aberta (salva)
+  const [concluidas, setConcluidas] = useEstadoPersistente("trilhaConcluidas", [], saneLista); // ids concluídos (salvo)
+  const leituraRef = useRef(null);
+
+  if (licoes.length === 0) return html`<section className="painel"><h2>Aprendendo do Zero</h2>
+    <p className="vazio">Nenhuma lição encontrada. Confira se o arquivo <code>trilha-estudos.js</code> está na mesma pasta do <code>index.html</code> e se ele define <code>window.trilhaEstudos</code>.</p></section>`;
+
+  const achado = licoes.findIndex(l => l.id === atualId);
+  const i = achado < 0 ? 0 : achado;                      // id salvo que não existe mais: volta à primeira lição
+  const lic = licoes[i];
+  const feita = id => concluidas.includes(id);
+  const nFeitas = licoes.filter(l => feita(l.id)).length;
+  const pct = Math.round((nFeitas / licoes.length) * 100);
+
+  function irPara(id) {
+    setAtualId(id);
+    requestAnimationFrame(() => { if (leituraRef.current) leituraRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  }
+  const alternarConclusao = () => setConcluidas(c => (c.includes(lic.id) ? c.filter(x => x !== lic.id) : [...c, lic.id]));
+
+  return html`<div className="lg:grid lg:grid-cols-[19rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <aside className="mb-5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md lg:sticky lg:top-6 lg:mb-0">
+      <div className="border-b border-slate-100 p-4">
+        <div className="flex items-baseline justify-between text-xs font-semibold uppercase tracking-wide text-slate-500"><span>Seu progresso</span><span className="text-emerald-700">${nFeitas}/${licoes.length} lições</span></div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="Progresso no curso" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${pct}><div className="h-full rounded-full bg-emerald-600 transition-all" style=${{ width: pct + "%" }}></div></div>
+      </div>
+      <div className="p-4 lg:hidden">
+        <label htmlFor="sel-licao">Ir para a lição</label>
+        <select id="sel-licao" value=${lic.id} onChange=${e => irPara(e.target.value)}>
+          ${modulos.map((m, mi) => html`<optgroup key=${m.id} label=${"Módulo " + (mi + 1) + " · " + m.titulo}>${m.licoes.map((l, li) => html`<option key=${l.id} value=${l.id}>${(feita(l.id) ? "✓ " : "") + (mi + 1) + "." + (li + 1) + " " + l.titulo}</option>`)}</optgroup>`)}
+        </select>
+      </div>
+      <nav aria-label="Conteúdo do curso" className="hidden max-h-[calc(100vh-13rem)] overflow-y-auto p-2 lg:block">
+        ${modulos.map((m, mi) => html`<div key=${m.id} className="mb-1">
+          <div className="px-3 pb-1 pt-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Módulo ${mi + 1}</div>
+            <div className="text-sm font-bold leading-snug text-slate-800">${m.titulo}</div>
+            <div className="text-xs text-slate-500">${m.licoes.filter(l => feita(l.id)).length}/${m.licoes.length} lições</div>
+          </div>
+          <ul>${m.licoes.map((l, li) => {
+            const ativa = l.id === lic.id;
+            return html`<li key=${l.id}><button type="button" aria-current=${ativa ? "page" : undefined} onClick=${() => irPara(l.id)}
+              className=${"flex min-h-0 w-full items-start gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium " + (ativa ? "bg-emerald-700 text-white shadow" : "text-slate-700 hover:bg-slate-100")}>
+              <span className=${"mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold " + (feita(l.id) ? "bg-emerald-500 text-white" : ativa ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600")}>${feita(l.id) ? "✓" : li + 1}</span>
+              <span>${l.titulo}</span></button></li>`;
+          })}</ul>
+        </div>`)}
+      </nav>
+    </aside>
+
+    <article ref=${leituraRef} aria-labelledby="t-licao" className="min-w-0 scroll-mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
+      <header className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-white px-5 py-5 sm:px-8">
+        <div className="flex flex-wrap items-center gap-2"><span className="selo neutro">Módulo ${lic.nModulo} · ${lic.modulo.titulo}</span>${lic.duracao && html`<span className="selo bg-slate-100 text-slate-600">${lic.duracao} de leitura</span>`}${feita(lic.id) && html`<span className="selo bg-emerald-600 text-white">✓ Concluída</span>`}</div>
+        <h2 id="t-licao" className="mb-0 mt-2 text-2xl leading-snug sm:text-3xl">${lic.numero} · ${lic.titulo}</h2>
+      </header>
+      <div className="space-y-5 px-5 py-6 sm:px-8">
+        ${Array.isArray(lic.objetivos) && lic.objetivos.length > 0 && html`<div className="rounded-lg bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+          <div className="mb-1 text-sm font-semibold text-emerald-800">Ao final desta lição você vai:</div>
+          <ul className="list-disc space-y-0.5 pl-5 text-sm text-slate-700">${lic.objetivos.map((o, k) => html`<li key=${k}>${o}</li>`)}</ul></div>`}
+        ${lic.conteudo.map((b, k) => html`<${Bloco} key=${lic.id + k} b=${b} />`)}
+        ${Array.isArray(lic.pontosChave) && lic.pontosChave.length > 0 && html`<div className="rounded-xl bg-emerald-800 px-5 py-4 text-emerald-50 shadow-md">
+          <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-emerald-200">Pontos-chave</div>
+          <ul className="space-y-1.5 text-[15px]">${lic.pontosChave.map((o, k) => html`<li key=${k} className="flex gap-2"><span aria-hidden="true">✓</span><span>${o}</span></li>`)}</ul></div>`}
+      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-8">
+        <button type="button" className="secundario" disabled=${i === 0} onClick=${() => irPara(licoes[i - 1].id)}>← Anterior</button>
+        <button type="button" className=${feita(lic.id) ? "secundario" : "primario"} onClick=${alternarConclusao}>${feita(lic.id) ? "✓ Concluída (desmarcar)" : "Marcar como concluída"}</button>
+        <button type="button" className="secundario" disabled=${i === licoes.length - 1} onClick=${() => irPara(licoes[i + 1].id)}>Próxima →</button>
+      </footer>
+      <div className="border-t border-slate-100 px-5 py-3 text-sm text-slate-500 sm:px-8">Conteúdo educacional com valores fictícios. Quer treinar? <button type="button" onClick=${() => onIrPara("painel")} className="inline min-h-0 p-0 font-semibold text-emerald-700 underline hover:text-emerald-900">Abra o Painel de Controle</button> e digite resultados.</div>
+    </article>
+  </div>`;
+}
+
 const ABAS = [
+  ["aprender", "Aprendendo do Zero", "M2 5.5A2.5 2.5 0 0 1 4.5 3H11v16H4.5A2.5 2.5 0 0 0 2 21.5zM22 5.5A2.5 2.5 0 0 0 19.5 3H13v16h6.5a2.5 2.5 0 0 1 2.5 2.5z", "Aprendendo do Zero", "Curso passo a passo: estatística básica e controle interno da qualidade para iniciantes"],
   ["painel", "Painel de Controle (Gráficos)", "M3 3v18h18M7 15l4-4 3 3 5-6", "Painel de Controle", "Resultados, gráficos de Levey-Jennings e alertas das regras de Westgard"],
   ["config", "Configurações de Regras e Níveis", "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6", "Configurações de Regras e Níveis", "Alvo e SD de cada nível e severidade de cada regra (desativada, alerta ou rejeição)"],
   ["treino", "Modo Treinamento", "M12 3 2 8l10 5 10-5-10-5zM6 10.5V16c0 1 2.7 3 6 3s6-2 6-3v-5.5", "Modo Treinamento", "Exercícios interativos e guia das regras de Westgard"],
@@ -1497,7 +1637,7 @@ function App() {
   const [regrasCfg, setRegrasCfg] = useEstadoPersistente("regras", CFG_PADRAO, saneRegras);         // severidade das regras
   const [modoGrafico, setModoGrafico] = useEstadoPersistente("modoGrafico", "separados", saneEm(["separados", "juntos", "ambos"]));
   const [limiteSD, setLimiteSD] = useEstadoPersistente("limiteSD", 3, saneLimite);                // SD máximo exibido nos gráficos (2 ou 3)
-  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "labsim", "fundamentos"]));
+  const [aba, setAba] = useEstadoPersistente("aba", "painel", saneEm(["painel", "config", "treino", "labsim", "fundamentos", "aprender"]));
   // Estado temporário (não persiste): texto dos campos do formulário e mensagem de erro
   const [entradas, setEntradas] = useState(["", "", ""]);
   const [erro, setErro] = useState("");
@@ -1549,8 +1689,9 @@ function App() {
 
   // Apaga TUDO que está salvo no navegador e volta aos padrões (o useEffect do hook regrava os padrões).
   function apagarTudo() {
-    if (!window.confirm("Apagar todos os dados salvos neste navegador (níveis, regras e resultados)?")) return;
-    setConfig(CONFIG_INICIAL); setCorridas([]); setRegrasCfg({ ...CFG_PADRAO }); setLimiteSD(3); setEntradas(["", "", ""]); setErro("");
+    if (!window.confirm("Apagar todos os dados salvos neste navegador (níveis, regras, resultados e progresso no curso)?")) return;
+    setConfig(CONFIG_INICIAL); setCorridas([]); setRegrasCfg({ ...CFG_PADRAO }); setLimiteSD(3);
+    try { localStorage.removeItem(PREFIXO_LS + "trilhaLicao"); localStorage.removeItem(PREFIXO_LS + "trilhaConcluidas"); } catch (e) { /* sem localStorage: nada a limpar */ }   // progresso do curso (o componente não está montado nesta aba) setEntradas(["", "", ""]); setErro("");
   }
 
   return html`<div className="min-h-screen md:flex">
@@ -1611,12 +1752,14 @@ function App() {
         <${PainelRegras} regrasCfg=${regrasCfg} setRegrasCfg=${setRegrasCfg} />
         <section className="painel" aria-labelledby="t-dados">
           <h2 id="t-dados">Dados salvos neste navegador</h2>
-          <p className="dica" style=${{ marginTop: 0 }}>Níveis, regras e resultados ficam guardados no navegador e voltam ao atualizar a página. Eles não são enviados a nenhum servidor.</p>
+          <p className="dica" style=${{ marginTop: 0 }}>Níveis, regras, limite do gráfico, resultados e progresso no curso ficam guardados no navegador e voltam ao atualizar a página. Eles não são enviados a nenhum servidor.</p>
           <div className="linha" style=${{ marginTop: "12px" }}><button type="button" className="secundario" onClick=${apagarTudo}>Apagar dados salvos</button></div>
         </section>
       <//>`}
 
       ${aba === "treino" && html`<${React.Fragment}><${Treinamento} /><${GuiaWestgard} /><//>`}
+
+      ${aba === "aprender" && html`<${AprendendoDoZero} onIrPara=${setAba} />`}
 
       ${aba === "labsim" && html`<${LabSim} />`}
 
